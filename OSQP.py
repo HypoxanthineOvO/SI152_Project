@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 
 # Constants
-MAX_ITER = 5000
+MAX_ITER = 50000
 EPS = 1e-5
 
 # Denotions
@@ -25,36 +25,10 @@ def projection(pt: np.ndarray, l: np.ndarray, u: np.ndarray) -> np.ndarray:
 if __name__ == "__main__":
 
     # Initialize the problem's parameters
-    # n = 2
-    # m = 5
-    # H = 2 * I_n
-    # g = np.array([-2, -5])
-    # AI = np.array([
-    #     [-1, 2],
-    #     [1, 2],
-    #     [1, -2],
-    #     [-1, 0],
-    #     [0, -1]
-    # ])
-    # bI = np.array([2, 6, 2, 0, 0])
-    # AE = None
-    # bE = None
-    n = 3
-    m = 4
-    M = np.array([[1.0, 2.0, 0.0], [-8.0, 3.0, 2.0], [0.0, 1.0, 1.0]])
-    H = M.T @ M  # this is a positive definite matrix
-    g = np.array([3.0, 2.0, 3.0]) @ M
-    AI = np.array([
-        [1.0, 2.0, 1.0], 
-        [2.0, 0.0, 1.0], 
-        [-1.0, 2.0, -1.0]
-    ])
-    bI = np.array([3.0, 2.0, -2.0])
-    AE = np.array([
-        [1.0, 1.0, 1.0]
-    ])
-    bE = np.array([1.0])
-    
+
+    with open("./RANDOM_QP.txt", "r") as f:
+        exec(f.read())
+
     # Check Dimensions
     I_n = np.identity(n)
     I_m = np.identity(m)
@@ -135,7 +109,8 @@ if __name__ == "__main__":
         # printVec(z_new)
         r_primal = np.linalg.norm(A @ x_new - z_new)
         r_dual = np.linalg.norm(H @ x_new + g + A.T @ y_new)
-        print(f"Iter: {iter}, r_primal: {r_primal}, r_dual: {r_dual}")
+        if iter % (MAX_ITER // 10) == 0:
+            print(f"Iter: {iter}, r_primal: {r_primal}, r_dual: {r_dual}")
         if r_primal < EPS and r_dual < EPS:
             break
         # Step 3: Update rho and sigma

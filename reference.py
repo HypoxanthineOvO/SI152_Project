@@ -10,22 +10,27 @@ def printVec(x: np.ndarray, num_digits: int = 4):
     print()
 
 if __name__ == "__main__":
-    n = 2
-    I = np.identity(n)
-    H = 2 * I
-    # Convert to scipy sparse matrix
-    H = sp.csc_matrix(H)
-    g = np.array([-2, -5])
-    AI = np.array([
-        [-1, 2],
-        [1, 2],
-        [1, -2],
-        [-1, 0],
-        [0, -1]
-    ])
-    AI = sp.csc_matrix(AI)
-    bI = np.array([2, 6, 2, 0, 0])
-    
-    x = solve_qp(H, g, G = AI, h = bI, solver = "osqp")
+    with open("./RANDOM_QP.txt", "r") as f:
+        exec(f.read())
+
+    I_FLAG = False
+    E_FLAG = False
+
+    if (AI is not None) and (bI is not None):
+        AI = sp.csc_matrix(AI)
+        bI = sp.csc_matrix(bI)
+        I_FLAG = True
+    if (AE is not None) and (bE is not None):
+        AE = sp.csc_matrix(AE)
+        bE = sp.csc_matrix(bE)
+        
+    if (I_FLAG and E_FLAG):
+        x = solve_qp(H, g, G = AI, H = AE, A = AI, b = bI, d = bE, solver = "osqp")
+    elif I_FLAG:
+        x = solve_qp(H, g, G = AI, h = bI, solver = "osqp")
+    elif E_FLAG:
+        x = solve_qp(H, g, A = AE, b = bE, solver = "osqp")
+    else:
+        x = solve_qp(H, g, solver = "osqp")
     
     printVec(x)
