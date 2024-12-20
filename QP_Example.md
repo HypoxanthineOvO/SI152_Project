@@ -47,6 +47,8 @@ The optimal solution = [1.4000, 1.7000]
 
 ## Example 2: QP_Solver Example
 ```python
+n = 3
+m = 4
 M = np.array([[1.0, 2.0, 0.0], [-8.0, 3.0, 2.0], [0.0, 1.0, 1.0]])
 H = M.T @ M  # this is a positive definite matrix
 g = np.array([3.0, 2.0, 3.0]) @ M

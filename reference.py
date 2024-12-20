@@ -26,6 +26,6 @@ if __name__ == "__main__":
     AI = sp.csc_matrix(AI)
     bI = np.array([2, 6, 2, 0, 0])
     
-    x = solve_qp(H, g, AI, bI, solver = "osqp")
+    x = solve_qp(H, g, G = AI, h = bI, solver = "osqp")
     
     printVec(x)
