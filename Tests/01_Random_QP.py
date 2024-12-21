@@ -43,11 +43,12 @@ if __name__ == "__main__":
     
     # Save the variables as code to a file
     with open(FILE, "w") as f:
-        f.write(f"n = {n}\n")
-        f.write(f"m = {m}\n")
-        f.write(f"H = np.array({P.tolist()})\n")
-        f.write(f"g = np.array({q.tolist()})\n")
-        f.write(f"AI = None\n")
-        f.write(f"bI = None\n")
-        f.write(f"AE = np.array({A.tolist()})\n")
-        f.write(f"bE = np.array({b.tolist()})\n")
+        f.write(f"n: {n}\n")
+        f.write(f"m: {m}\n")
+        # To flatten the matrix, we use the .tolist() method
+        f.write(f"H: {P.tolist()}\n")
+        f.write(f"g: {q.tolist()}\n")
+        f.write(f"AI: None\n")
+        f.write(f"bI: None\n")
+        f.write(f"AE: {A.tolist()}\n")
+        f.write(f"bE: {b.tolist()}\n")

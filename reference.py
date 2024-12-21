@@ -1,7 +1,8 @@
 import numpy as np
+import sys
 import scipy.sparse as sp
 from qpsolvers import solve_qp
-import os, sys
+from utils import init_from_config
 
 def printVec(x: np.ndarray, num_digits: int = 4):
     for i in range(x.shape[0]):
@@ -10,8 +11,11 @@ def printVec(x: np.ndarray, num_digits: int = 4):
     print()
 
 if __name__ == "__main__":
-    with open("./RANDOM_QP.txt", "r") as f:
-        exec(f.read())
+    if len(sys.argv) > 1:
+        cfg_file = sys.argv[1]
+    else:
+        cfg_file = "./Testcases/reference.txt"
+    n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
     I_FLAG = False
     E_FLAG = False

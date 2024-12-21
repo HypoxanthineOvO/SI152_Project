@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+from utils import init_from_config
 
 # Constants
 MAX_ITER = 50000
@@ -25,9 +26,7 @@ def projection(pt: np.ndarray, l: np.ndarray, u: np.ndarray) -> np.ndarray:
 if __name__ == "__main__":
 
     # Initialize the problem's parameters
-
-    with open("./RANDOM_QP.txt", "r") as f:
-        exec(f.read())
+    n, m, H, g, AI, bI, AE, bE = init_from_config("RANDOM_QP.txt")
 
     # Check Dimensions
     I_n = np.identity(n)
