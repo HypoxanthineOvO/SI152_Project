@@ -2,7 +2,7 @@ import numpy as np
 import sys
 from utils import init_from_config, check_feasible
 import scipy.sparse as sp
-
+from tqdm import tqdm, trange
 # Constants
 MAX_ITER = 10000
 EPS = 1e-5
@@ -52,12 +52,11 @@ if __name__ == "__main__":
     x = np.zeros(n)
     p = np.zeros(m)
     nu = np.zeros((m))
-    Const = 1.1
-    
+    Const = 2
     
     # Main Loop
     print("\nIterating...")
-    for iter in range(MAX_ITER):
+    for iter in trange(MAX_ITER):
         # Step 1
         ## Step 1.1: Minimize p. It can be explicitly solved.
         p_new = np.zeros_like(p)
@@ -70,6 +69,7 @@ if __name__ == "__main__":
                 Project_si = 0
                 dist = np.linalg.norm(si - Project_si)
             
+            dist = dist * (iter / MAX_ITER * 1.5 + 1)
             if (dist <= Const):
                 p_new[i] = Project_si
             else:
@@ -79,12 +79,11 @@ if __name__ == "__main__":
         ## Step 1.2: Minimize x
         ### Gradient Descent
         x_new = x
-        for i in range(256):
+        for i in range(1000):
             grad_x = g + H @ x_new + 1/Const * (A.T @ A) @ x_new + 1/Const * A.T @ (b - p_new + Const * nu)
             x_new = x_new - 0.1 / (i+1) * grad_x
             if np.linalg.norm(grad_x) < 1e-5:
                 break
-        
         ## Step 1.3: Minimize nu
         nu_new = nu + 1/Const * (A @ x_new + b - p_new)
         
@@ -96,12 +95,19 @@ if __name__ == "__main__":
             delta_2 = max(delta_2, delta_2_i)
         if delta_1 < EPS and delta_2 < EPS:
             #print("Converged")
-            break
+            if check_feasible(x_new, AI, bI, "inequ", printResult = False) and check_feasible(x_new, AE, bE, "equ", printResult = False):
+                break
+            elif iter >= 0.8 * MAX_ITER:
+                break
+            
         # Update
         #print(f"Iter {iter}: x: {x_new}, p: {p_new}")
         x = x_new
         p = p_new
         nu = nu_new
+        
+        optimize_process = round(iter / MAX_ITER * 100)
+        
     
     print("Algorithm Finished.")
     print("x: ", end = "")

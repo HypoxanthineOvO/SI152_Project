@@ -87,34 +87,38 @@ def init_from_config(path: str):
     n, m, H, g, AI, bI, AE, bE = parseConfig(cfg)
     return n, m, H, g, AI, bI, AE, bE
 
-def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optimal_check_eps: float = 0.01):
+def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optimal_check_eps: float = 0.01, printResult: bool = True):
     if type == "inequ":
         res = A @ x - b
         feas = np.all(res <= optimal_check_eps)
         if feas:
-            print("Inequality Feasible Check Passed")
+            if printResult:
+                print("Inequality Feasible Check Passed")
             return True
         else:
             cnt = b.shape[0]
-            for i in range(cnt):
-                if res[i] > optimal_check_eps:
-                    print(f"Inequality Feasibility Check Failed at {i}th constraint")
-                    Ax = A[i] @ x
-                    print(f"Ax = {Ax}, b = {b[i]}")
+            if printResult:
+                for i in range(cnt):
+                    if res[i] > optimal_check_eps:
+                        print(f"Inequality Feasibility Check Failed at {i}th constraint")
+                        Ax = A[i] @ x
+                        print(f"Ax = {Ax}, b = {b[i]}")
             return False
     elif type == "equ":
         res = A @ x - b
         feas = np.all(np.abs(res) <= optimal_check_eps)
         if feas:
-            print("Equality Feasible Check Passed")
+            if printResult:
+                print("Equality Feasible Check Passed")
             return True
         else:
             cnt = b.shape[0]
-            for i in range(cnt):
-                if np.abs(res[i]) > optimal_check_eps:
-                    print(f"Equality Feasibility Check Failed at {i}th constraint")
-                    Ax = A[i] @ x
-                    print(f"Ax = {Ax}, b = {b[i]}")
+            if printResult:
+                for i in range(cnt):
+                    if np.abs(res[i]) > optimal_check_eps:
+                        print(f"Equality Feasibility Check Failed at {i}th constraint")
+                        Ax = A[i] @ x
+                        print(f"Ax = {Ax}, b = {b[i]}")
             return False
 
 
