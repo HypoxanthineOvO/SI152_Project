@@ -1,10 +1,10 @@
 import numpy as np
 import sys
-from utils import init_from_config
+from utils import init_from_config, check_feasible
 import scipy.sparse as sp
 
 # Constants
-MAX_ITER = 1000
+MAX_ITER = 10000
 EPS = 1e-5
 
 # Denotions
@@ -47,9 +47,6 @@ if __name__ == "__main__":
         b[:num_inequ] = bI
     if bE is not None:
         b[num_inequ:] = bE
-    
-    print("A: \n", A)
-    print("B: \n", b)
     
     # Initialize
     x = np.zeros(n)
@@ -98,10 +95,10 @@ if __name__ == "__main__":
             delta_2_i = np.abs(A[i] @ x_new + b[i] - p_new[i])
             delta_2 = max(delta_2, delta_2_i)
         if delta_1 < EPS and delta_2 < EPS:
-            print("Converged")
+            #print("Converged")
             break
         # Update
-        print(f"Iter {iter}: x: {x_new}, p: {p_new}")
+        #print(f"Iter {iter}: x: {x_new}, p: {p_new}")
         x = x_new
         p = p_new
         nu = nu_new
@@ -109,25 +106,11 @@ if __name__ == "__main__":
     print("Algorithm Finished.")
     print("x: ", end = "")
     printVec(x)
-    print("p: ", end = "")
-    printVec(p)
-    print("Ax + b - p: ", end = "")
-    printVec(A @ x + b - p)
-    print("nu: ", end = "")
-    printVec(nu)
-    
+    print("Objective Value: ", end = "")
+    print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
     
     # Feasibility Check
-    print("Feasibility Check")
-    ## Inequality Constraints: AI, bI: print AIx+bI
-    if AI is not None:
-        
-        print("AIx+bI <= 0: ", end="")
-        printVec(AI @ x + bI)
-        bool_val = ((AI @ x + bI) <= 0)
-        for i in range(num_inequ):
-            print(bool_val[i], end = " ")
-        print()
-    ## Equality Constraints: AE, bE: print AEx+bE
-    if AE is not None:
-        print("AEx+bE: ", np.abs((AE @ x + bE)) <= 1e-3)
+    if (AI is not None) and (bI is not None):
+        check_feasible(x, AI, bI, "inequ")
+    if (AE is not None) and (bE is not None):
+        check_feasible(x, AE, bE, "equ")

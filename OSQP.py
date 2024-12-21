@@ -1,9 +1,10 @@
 import numpy as np
+import sys
 import scipy.sparse as sp
-from utils import init_from_config
+from utils import init_from_config, check_feasible
 
 # Constants
-MAX_ITER = 50000
+MAX_ITER = 10000
 EPS = 1e-5
 
 # Denotions
@@ -24,9 +25,11 @@ def projection(pt: np.ndarray, l: np.ndarray, u: np.ndarray) -> np.ndarray:
     return np.clip(pt, l, u)
 
 if __name__ == "__main__":
-
-    # Initialize the problem's parameters
-    n, m, H, g, AI, bI, AE, bE = init_from_config("RANDOM_QP.txt")
+    if len(sys.argv) > 1:
+        cfg_file = sys.argv[1]
+    else:
+        cfg_file = "./Testcases/reference.txt"
+    n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
     # Check Dimensions
     I_n = np.identity(n)
@@ -117,4 +120,13 @@ if __name__ == "__main__":
         z = z_new
         y = y_new
     
+    print("Algorithm Finished.")
+    print("x: ", end = "")
     printVec(x)
+    print("Objective Value: ", end = "")
+    print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
+    if (AI is not None) and (bI is not None):
+        check_feasible(x, AI, bI, "inequ")
+    if (AE is not None) and (bE is not None):
+        check_feasible(x, AE, bE, "equ")
+        
