@@ -4,7 +4,7 @@ from utils import init_from_config, check_feasible
 import scipy.sparse as sp
 from tqdm import tqdm, trange
 # Constants
-MAX_ITER = 10000
+MAX_ITER = 1000
 EPS = 1e-5
 
 # Denotions
@@ -28,6 +28,7 @@ if __name__ == "__main__":
         cfg_file = "./Testcases/reference.txt"
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
+    
     # Check Dimensions
     I_n = np.identity(n)
     I_m = np.identity(m)
@@ -95,11 +96,11 @@ if __name__ == "__main__":
             delta_2 = max(delta_2, delta_2_i)
         if delta_1 < EPS and delta_2 < EPS:
             #print("Converged")
-            if check_feasible(x_new, AI, bI, "inequ", printResult = False) and check_feasible(x_new, AE, bE, "equ", printResult = False):
-                break
-            elif iter >= 0.8 * MAX_ITER:
-                break
-            
+            #if check_feasible(x_new, AI, bI, "inequ", printResult = False) and check_feasible(x_new, AE, bE, "equ", printResult = False):
+            #    break
+            #elif iter >= 0.8 * MAX_ITER:
+            #    break
+            break
         # Update
         #print(f"Iter {iter}: x: {x_new}, p: {p_new}")
         x = x_new
@@ -117,6 +118,6 @@ if __name__ == "__main__":
     
     # Feasibility Check
     if (AI is not None) and (bI is not None):
-        check_feasible(x, AI, bI, "inequ")
+        check_feasible(x, AI, -bI, "inequ")
     if (AE is not None) and (bE is not None):
-        check_feasible(x, AE, bE, "equ")
+        check_feasible(x, AE, -bE, "equ")

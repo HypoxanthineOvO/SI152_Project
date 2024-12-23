@@ -31,7 +31,7 @@ if __name__ == "__main__":
         #bE = sp.csc_matrix(bE)
         E_FLAG = True
     if (I_FLAG and E_FLAG):
-        x = solve_qp(H, g, G = AI, H = AE, A = AI, b = bI, d = bE, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = bI, A = AE, b = bE, solver = "osqp")
     elif I_FLAG:
         x = solve_qp(H, g, G = AI, h = bI, solver = "osqp")
     elif E_FLAG:
