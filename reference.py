@@ -10,11 +10,9 @@ def printVec(x: np.ndarray, num_digits: int = 4):
         print("{:.4f}".format(rounded_x), end = " ")
     print()
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        cfg_file = sys.argv[1]
-    else:
-        cfg_file = "./Testcases/reference.txt"
+
+def reference(cfg_file: str = None):
+    
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
     I_FLAG = False
@@ -31,11 +29,11 @@ if __name__ == "__main__":
         #bE = sp.csc_matrix(bE)
         E_FLAG = True
     if (I_FLAG and E_FLAG):
-        x = solve_qp(H, g, G = AI, h = bI, A = AE, b = bE, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = -bI, A = AE, b = -bE, solver = "osqp")
     elif I_FLAG:
-        x = solve_qp(H, g, G = AI, h = bI, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = -bI, solver = "osqp")
     elif E_FLAG:
-        x = solve_qp(H, g, A = AE, b = bE, solver = "osqp")
+        x = solve_qp(H, g, A = AE, b = -bE, solver = "osqp")
     else:
         x = solve_qp(H, g, solver = "osqp")
     
@@ -43,8 +41,8 @@ if __name__ == "__main__":
     printVec(x)
     print("Objective Value: ", end = "")
     print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
-    # Feasibility Check
-    if I_FLAG:
+    
+    # if I_FLAG:
         # print("Inequality Feasibility: ")
         # INEQU_RES = AI @ x - bI
         # inequ_feas = np.all(INEQU_RES <= 0)
@@ -57,10 +55,29 @@ if __name__ == "__main__":
         #             print(f"Inequality Feasibility Check Failed at {i}th constraint")
         #             print(f"Constraint: {AI[i].toarray()} x <= {bI[i]}")
         #             print(f"Result: {round(INEQU_RES[i], 4)}")
-        check_feasible(x, AI, bI, "inequ")
-    if E_FLAG:
+        # check_feasible(x, AI, bI, "inequ")
+    # if E_FLAG:
         # print("Equality Feasibility: ")
         # EQU_RES = AE @ x - bE
         # equ_feas = np.all(np.abs(EQU_RES) <= 1e-5)
         # print(f"Equality Feasible: {equ_feas}")
-        check_feasible(x, AE, bE, "equ")
+        # check_feasible(x, AE, bE, "equ")
+
+    return x
+   
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        cfg_file = sys.argv[1]
+    else:
+        cfg_file = "./Testcases/reference.txt"
+    x = reference(cfg_file)
+    
+    
