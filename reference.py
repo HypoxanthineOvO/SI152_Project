@@ -15,6 +15,8 @@ if __name__ == "__main__":
         cfg_file = sys.argv[1]
     else:
         cfg_file = "./Testcases/reference.txt"
+    
+    method = "cvxopt"
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
     I_FLAG = False
@@ -31,13 +33,13 @@ if __name__ == "__main__":
         #bE = sp.csc_matrix(bE)
         E_FLAG = True
     if (I_FLAG and E_FLAG):
-        x = solve_qp(H, g, G = AI, h = bI, A = AE, b = bE, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = bI, A = AE, b = bE, solver = method)
     elif I_FLAG:
-        x = solve_qp(H, g, G = AI, h = bI, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = bI, solver = method)
     elif E_FLAG:
-        x = solve_qp(H, g, A = AE, b = bE, solver = "osqp")
+        x = solve_qp(H, g, A = AE, b = bE, solver = method)
     else:
-        x = solve_qp(H, g, solver = "osqp")
+        x = solve_qp(H, g, solver = method)
     
     print("Solution: ", end = "")
     printVec(x)
