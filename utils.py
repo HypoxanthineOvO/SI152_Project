@@ -4,13 +4,13 @@ import os
 def loadConfig(cfg_path: str):
     assert os.path.exists(cfg_path), f"Config file {cfg_path} does not exist"
     with open(cfg_path, "r") as f:
-        raws = f.readlines()
+        rows = f.readlines()
     # Split the lines into key-value pairs. key is start with xxx, split by ':', value are number or lists
     config = {}
-    for raw in raws:
-        if raw.strip() == "":
+    for row in rows:
+        if row.strip() == "":
             continue
-        key, value = raw.split(":")
+        key, value = row.split(":")
         key = key.strip()
         value = value.strip()
         if value == "None":
@@ -89,7 +89,7 @@ def init_from_config(path: str):
 
 def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optimal_check_eps: float = 0.01, printResult: bool = True):
     if type == "inequ":
-        res = A @ x - b
+        res = A @ x + b
         feas = np.all(res <= optimal_check_eps)
         if feas:
             if printResult:
@@ -105,7 +105,7 @@ def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optim
                         print(f"Ax = {Ax}, b = {b[i]}")
             return False
     elif type == "equ":
-        res = A @ x - b
+        res = A @ x + b
         feas = np.all(np.abs(res) <= optimal_check_eps)
         if feas:
             if printResult:
@@ -121,6 +121,12 @@ def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optim
                         print(f"Ax = {Ax}, b = {b[i]}")
             return False
 
+
+def printVec(x: np.ndarray, num_digits: int = 4):
+    for i in range(x.shape[0]):
+        rounded_x = round(x[i], num_digits)
+        print("{:.4f}".format(rounded_x), end = " ")
+    print()
 
 if __name__ == "__main__":
     cfg = loadConfig("./Testcases/reference.txt")
