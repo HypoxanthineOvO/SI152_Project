@@ -35,7 +35,7 @@ def reference(cfg_file: str = None):
     elif E_FLAG:
         x = solve_qp(H, g, A = AE, b = -bE, solver = "osqp")
     else:
-        x = solve_qp(H, g, solver = method)
+        x = solve_qp(H, g, solver = "osqp")
     
     print("Solution: ", end = "")
     printVec(x)
