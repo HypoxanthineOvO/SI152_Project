@@ -120,8 +120,8 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         
     return x_k
 
-def QP_solver(AE, AI, bE, bI, g, H):
-    x_k = np.zeros(H.shape[0])
+def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray, n: int, m: int):
+    x_k = np.zeros(n)
     penalty = 1
     penalties = []
     AE_original = AE.copy()
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         cfg_file = "./Testcases/reference.txt"
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
     
-    x = QP_solver(AE, AI, bE, bI, g, H)
+    x = QP_solver(AE, AI, bE, bI, g, H, n, m)
     print("x:", end=" ")
     printVec(x)
     print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))

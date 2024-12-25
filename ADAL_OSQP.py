@@ -24,50 +24,16 @@ def projection(pt: np.ndarray, l: np.ndarray, u: np.ndarray) -> np.ndarray:
     # Clip the values
     return np.clip(pt, l, u)
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        cfg_file = sys.argv[1]
-    else:
-        cfg_file = "./Testcases/reference.txt"
-    n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
+def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray, 
+         g: np.ndarray, H: np.ndarray,
+         rho: float = 1,
+         sigma: float = 1,
+         alpha: float = 1.5):
 
-    # Check Dimensions
-    I_n = np.identity(n)
-    I_m = np.identity(m)
-    AI_len = AI.shape[0] if AI is not None else 0
-    bI_len = bI.shape[0] if bI is not None else 0
-    assert AI_len == bI_len, "Inequality constraints do not match the dimension of the problem"
-    AE_len = AE.shape[0] if AE is not None else 0
-    bE_len = bE.shape[0] if bE is not None else 0
-    assert AE_len == bE_len, "Equality constraints do not match the dimension of the problem"
-    assert AI_len + AE_len == m, "Inequality and equality constraints do not match the dimension of the problem"
-    
-    
-    # Generate A and l,u from AI, bI, AE, bE
-    A = np.zeros((m, n))
-    l = np.zeros(m)
-    u = np.zeros(m)
-    
-    if AI is not None:
-        A[:AI_len] = AI
-        l[:AI_len] = -np.inf
-        u[:AI_len] = bI
-    if AE is not None:
-        A[AI_len:] = AE
-        l[AI_len:] = bE
-        u[AI_len:] = bE
-    
-    # Do OSQP
     ## Step 1: Initialize
     x = np.zeros(n)
     z = np.zeros(m)
     y = np.zeros(m)
-    
-    rho = 1
-    sigma = 1
-    alpha = 1.6
-    
-    
     ## Step 2: Run OSQP
     for iter in range(MAX_ITER):
         # Step 1: Solve the linear system subproblem
@@ -120,11 +86,61 @@ if __name__ == "__main__":
         z = z_new
         y = y_new
     
+    return x
+
+def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray, n: int, m: int):
+    # Dimension Check
+    AI_len = AI.shape[0] if AI is not None else 0
+    bI_len = bI.shape[0] if bI is not None else 0
+    assert AI_len == bI_len, "Inequality constraints do not match the dimension of the problem"
+    AE_len = AE.shape[0] if AE is not None else 0
+    bE_len = bE.shape[0] if bE is not None else 0
+    assert AE_len == bE_len, "Equality constraints do not match the dimension of the problem"
+    assert AI_len + AE_len == m, "Inequality and equality constraints do not match the dimension of the problem"
+    
+    # Generate A and l,u from AI, bI, AE, bE
+    A = np.zeros((m, n))
+    l = np.zeros(m)
+    u = np.zeros(m)
+    
+    if AI is not None:
+        A[:AI_len] = AI
+        l[:AI_len] = -np.inf
+        u[:AI_len] = bI
+    if AE is not None:
+        A[AI_len:] = AE
+        l[AI_len:] = bE
+        u[AI_len:] = bE
+    
+    # Do OSQP
+    
+    rho = 1
+    sigma = 1
+    alpha = 1.6
+    
+    x = ADAL(A, l, u, g, H, rho, sigma, alpha)
+    
     print("Algorithm Finished.")
     print("x: ", end = "")
     printVec(x)
-    print("Objective Value: ", end = "")
-    print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
+    # print("Objective Value: ", end = "")
+    # print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
+    
+    return x
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        cfg_file = sys.argv[1]
+    else:
+        cfg_file = "./Testcases/reference.txt"
+    n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
+
+    # Check Dimensions
+    I_n = np.identity(n)
+    I_m = np.identity(m)
+
+    x = QP_solver(AE, AI, bE, bI, g, H, n, m)
+    
     if (AI is not None) and (bI is not None):
         check_feasible(x, AI, bI, "inequ")
     if (AE is not None) and (bE is not None):
