@@ -2,6 +2,7 @@ import numpy as np
 import sys
 import scipy.sparse as sp
 from utils import init_from_config, check_feasible
+from reference import reference
 
 # Constants
 MAX_ITER = 10000
@@ -77,7 +78,7 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
         # printVec(z_new)
         r_primal = np.linalg.norm(A @ x_new - z_new)
         r_dual = np.linalg.norm(H @ x_new + g + A.T @ y_new)
-        if iter % (MAX_ITER // 10) == 0:
+        if iter % (MAX_ITER // 1000) == 0:
             print(f"Iter: {iter}, r_primal: {r_primal}, r_dual: {r_dual}")
         if r_primal < EPS and r_dual < EPS:
             break
@@ -88,15 +89,21 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
     
     return x
 
-def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray, n: int, m: int):
+def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray):
     # Dimension Check
     AI_len = AI.shape[0] if AI is not None else 0
     bI_len = bI.shape[0] if bI is not None else 0
     assert AI_len == bI_len, "Inequality constraints do not match the dimension of the problem"
     AE_len = AE.shape[0] if AE is not None else 0
     bE_len = bE.shape[0] if bE is not None else 0
+    
+    n = H.shape[0]
+    m = AI_len + AE_len
     assert AE_len == bE_len, "Equality constraints do not match the dimension of the problem"
     assert AI_len + AE_len == m, "Inequality and equality constraints do not match the dimension of the problem"
+    
+    
+    
     
     # Generate A and l,u from AI, bI, AE, bE
     A = np.zeros((m, n))
@@ -106,11 +113,11 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g:
     if AI is not None:
         A[:AI_len] = AI
         l[:AI_len] = -np.inf
-        u[:AI_len] = bI
+        u[:AI_len] = -bI
     if AE is not None:
         A[AI_len:] = AE
-        l[AI_len:] = bE
-        u[AI_len:] = bE
+        l[AI_len:] = -bE
+        u[AI_len:] = -bE
     
     # Do OSQP
     
@@ -139,10 +146,16 @@ if __name__ == "__main__":
     I_n = np.identity(n)
     I_m = np.identity(m)
 
-    x = QP_solver(AE, AI, bE, bI, g, H, n, m)
+    x = QP_solver(AE, AI, bE, bI, g, H)
     
+  
+    print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
+        
     if (AI is not None) and (bI is not None):
         check_feasible(x, AI, bI, "inequ")
     if (AE is not None) and (bE is not None):
         check_feasible(x, AE, bE, "equ")
-        
+
+    ans = reference(cfg_file)
+    print("Reference Answer: ", end = "")
+    printVec(ans)

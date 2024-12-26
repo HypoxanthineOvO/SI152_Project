@@ -7,7 +7,7 @@ nonzero_ratio = 0.15
 FILE = "../RANDOM_QP.txt"
 
 # Variables
-n = 2
+n = 5
 random_seed = 0
 
 
@@ -55,6 +55,8 @@ if __name__ == "__main__":
     Final_b[:m] = right_bound # Ax <= u
     Final_b[m:] = -left_bound # -Ax <= -l
     
+    # To align with the Ax + b <= 0 format 
+    Final_b = -Final_b
     
     # Save the variables as code to a file
     with open(FILE, "w") as f:

@@ -6,7 +6,7 @@ from utils import init_from_config, check_feasible, printVec
 from reference import reference
 
 MAX_ITER = 10000
-EPS = 1e-5
+EPS = 1e-6
 
 def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     """
@@ -19,22 +19,25 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     For i ∈ I2:
     w_i = (( max(a_i^T x_tilde + b_i, 0)^2 + eps_i^2 ))^{-1/2}
     """
-    r1 = AE @ x_tilde + bE
-    r2 = AI @ x_tilde + bI
+    m1 = 0
+    w1 = w2 = None
+    if AE is not None and bE is not None:
+        r1 = AE @ x_tilde + bE
+        m1 = AE.shape[0]
+        eps_1 = eps[:m1]
+        w1 = 1.0 / np.sqrt(r1**2 + eps_1**2)
+    if AI is not None and bI is not None:
+        r2 = AI @ x_tilde + bI
+        eps_2 = eps[m1:]
+        hinge_r2 = np.maximum(r2, 0)
+        w2 = 1.0 / np.sqrt(hinge_r2**2 + eps_2**2)
     
-    m1 = AE.shape[0]
-    eps_1 = eps[:m1]
-    eps_2 = eps[m1:]
-    
-    w1 = 1.0 / np.sqrt(r1**2 + eps_1**2)
-    hinge_r2 = np.maximum(r2, 0)
-    w2 = 1.0 / np.sqrt(hinge_r2**2 + eps_2**2)
     
     return w1, w2
 
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
          eta=0.7, gamma=1/6, M=10000, 
-         sigma=1e-5, sigma_prime=1e-8, 
+         sigma=1e-4, sigma_prime=1e-8, 
          max_iter=1000):
     """
     Iteratively solve the reweighted QP problem using the IRWA algorithm.
@@ -73,20 +76,28 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         The solution after iterations.
     """
     x_k = x_init.copy()
-    eps_k = eps_init if not np.isscalar(eps_init) else np.full(AE.shape[0] + AI.shape[0], eps_init)
-    
-    # Stack A and b for convenience
-    A = np.vstack([AE, AI])
-    b = np.concatenate([bE, bI])
-    
+   
+    A = np.vstack([AE, AI]) if AE is not None and AI is not None else AE if AE is not None else AI
+    b = np.concatenate([bE, bI]) if bE is not None and bI is not None else bE if bE is not None else bI
+
+    eps_k = eps_init if not np.isscalar(eps_init) else np.full(A.shape[0], eps_init)
     for k in range(max_iter):
         # Step 1: Compute weights and solve the reweighted subproblem
         w1, w2 = compute_weights(x_k, AE, bE, AI, bI, eps_k)
-        w = np.concatenate([w1, w2])
-        W = np.diag(w)
-        v_I1 = bE
-        v_I2 = np.maximum(-AI @ x_k, bI)
-        v = np.concatenate([v_I1, v_I2])
+        # w = np.concatenate([w1, w2]) 
+        # W = np.diag(w)
+        # v_I1 = bE
+        # v_I2 = np.maximum(-AI @ x_k, bI) 
+        # v = np.concatenate([v_I1, v_I2]) 
+        if w1 is not None and w2 is not None:
+            W = sp.diags(np.concatenate([w1, w2]), format="csc")
+            v = np.concatenate([bE, np.maximum(-AI @ x_k, bI)])
+        elif w1 is not None:
+            W = sp.diags(w1, format="csc")
+            v = bE
+        else:
+            W = sp.diags(w2, format="csc")
+            v = np.maximum(-AI @ x_k, bI)
 
         # Solve the linear system: (H + A^T W A) x = - (g + A^T W v)
         lhs = H + A.T @ W @ A
@@ -120,50 +131,52 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         
     return x_k
 
-def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray, n: int, m: int):
-    x_k = np.zeros(n)
-    penalty = 1
+def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray):
+    x_k = np.zeros(H.shape[0])
+    penalty = 1.1
     penalties = []
-    AE_original = AE.copy()
-    AI_original = AI.copy()
-    bE_original = bE.copy()
-    bI_original = bI.copy()
+    
+    AE_original = AI_original = bE_original = bI_original = None
+    E_FLAG = I_FLAG = False
+    if AE is not None and bE is not None:
+        AE_original = AE.copy()
+        bE_original = bE.copy()
+        E_FLAG = True
+    if AI is not None and bI is not None:
+        AI_original = AI.copy()
+        bI_original = bI.copy()
+        I_FLAG = True
     eps = 1e4
     lst1 = []
     lst2 = []
     for k in range(10000):
-        AE = AE_original * penalty
-        AI = AI_original * penalty
-        bE = bE_original * penalty
-        bI = bI_original * penalty
-        
         x_next = IRWA(H, g, AE, bE, AI, bI, eps, x_k)
-
-        
-        if abs(AE_original @ x_next + bE_original) <= EPS and np.all(AI_original @ x_next + bI_original <= EPS) and np.all(np.abs(x_next - x_k)<= EPS):
-            break
-        
+        # penalty *= (np.exp(-k / 10) + 1.1)
+        penalty *= 1.1
+        if E_FLAG:
+            E_feasible = check_feasible(x_next, AE_original, bE_original, "equ", optimal_check_eps=EPS, printResult=False)
+            AE = AE_original * penalty
+            bE = bE_original * penalty
+        else:
+            E_feasible = True
+        if I_FLAG:
+            I_feasible = check_feasible(x_next, AI_original, bI_original, "inequ", optimal_check_eps=EPS, printResult=False)
+            AI = AI_original * penalty
+            bI = bI_original * penalty
+        else:
+            I_feasible = True
+            
+        if E_feasible and I_feasible and np.all(np.abs(x_next-x_k) <= EPS):
+           break
+    
         penalties.append(penalty)
-        penalty *= (np.exp(-k / 10) + 1)
-        # penalty *= 1.1
+        
         lst1.append(np.mean(x_next - x_k))
         lst2.append(np.exp(-k / 10) + 1)
         x_k = x_next
         value = 1 / 2 * x_k.T @ H @ x_k + g @ x_k
-
-        print(f"The {k+1}th iter: {x_k} and function value is {value}, penalty is {penalty}")
-        
-    # plt.figure(figsize = (15, 6))
-    # plt.subplot(1, 3, 1)
-    # plt.plot(lst1)
-    # plt.subplot(1, 3, 2)
-    # plt.plot(penalties)
-    # plt.xlabel('Iteration')
-    # plt.ylabel('Penalty')
-    # plt.subplot(1, 3, 3)
-    # plt.plot(lst2)
-    # plt.title('Penalty Variation Over Iterations')
-    # plt.show()
+        if k % 10 == 0:
+            print(f"The {k+1}th iter: {x_k} and function value is {value}, penalty is {penalty}")
     
     return x_k
 
@@ -176,7 +189,7 @@ if __name__ == "__main__":
         cfg_file = "./Testcases/reference.txt"
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
     
-    x = QP_solver(AE, AI, bE, bI, g, H, n, m)
+    x = QP_solver(AE, AI, bE, bI, g, H)
     print("x:", end=" ")
     printVec(x)
     print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
@@ -193,5 +206,4 @@ if __name__ == "__main__":
     
     
     
-
 
