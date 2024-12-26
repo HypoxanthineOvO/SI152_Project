@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import scipy.sparse as sp
+from scipy.optimize import linprog
 from utils import init_from_config, check_feasible, printVec
 from reference import reference
 
@@ -146,6 +147,15 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g:
         AI_original = AI.copy()
         bI_original = bI.copy()
         I_FLAG = True
+    c = np.zeros(H.shape[0])
+    result = linprog(c, A_ub=AI_original, b_ub=-bI_original, A_eq=AE_original, b_eq=-bE_original, bounds=[(None, None)]*H.shape[0])
+    print(result.success)
+    if not result.success:
+        print("The problem is infeasible.")
+        return None
+    else:
+        x_k = result.x
+    
     eps = 1e4
     lst1 = []
     lst2 = []
@@ -190,14 +200,15 @@ if __name__ == "__main__":
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
     
     x = QP_solver(AE, AI, bE, bI, g, H)
-    print("x:", end=" ")
-    printVec(x)
-    print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
+    if x is not None:
+        print("x:", end=" ")
+        printVec(x)
+        print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
     
-    if (AI is not None) and (bI is not None):
-        check_feasible(x, AI, bI, "inequ", optimal_check_eps=1e-4)
-    if (AE is not None) and (bE is not None):
-        check_feasible(x, AE, bE, "equ", optimal_check_eps=1e-4)
+        if (AI is not None) and (bI is not None):
+            check_feasible(x, AI, bI, "inequ", optimal_check_eps=1e-4)
+        if (AE is not None) and (bE is not None):
+            check_feasible(x, AE, bE, "equ", optimal_check_eps=1e-4)
         
     ans = reference(cfg_file)
 

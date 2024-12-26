@@ -37,10 +37,14 @@ def reference(cfg_file: str = None):
     else:
         x = solve_qp(H, g, solver = "osqp")
     
-    print("Solution: ", end = "")
-    printVec(x)
-    print("Objective Value: ", end = "")
-    print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
+    if x is None:
+        print("The problem is infeasible.")
+        return None
+    else:
+        print("Solution: ", end = "")
+        printVec(x)
+        print("Objective Value: ", end = "")
+        print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
     
     # if I_FLAG:
         # print("Inequality Feasibility: ")
