@@ -11,7 +11,7 @@ def printVec(x: np.ndarray, num_digits: int = 4):
     print()
 
 
-def reference(cfg_file: str = None, method = "cvxopt"):
+def reference(cfg_file: str = None, method = "piqp"):
     if cfg_file is None:
         raise ValueError("Please provide a configuration file.")
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
