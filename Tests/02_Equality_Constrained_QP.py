@@ -2,12 +2,12 @@ import numpy as np
 import os, sys
 
 # Constants
-alpha = 1e-2
-nonzero_ratio = 0.4
-FILE = "../EQU_Constr_QP.txt"
+alpha = 5e-2
+nonzero_ratio = 0.5
+FILE = "../02_EQU_Constr_QP.txt"
 
 # Variables
-n = 2
+n = 5
 random_seed = 0
 
 
@@ -46,7 +46,9 @@ if __name__ == "__main__":
     A[np.random.randint(0, m, num_nonzero_MN), np.random.randint(0, n, num_nonzero_MN)] = np.random.randn(num_nonzero_MN)
     ## b: Random vector
     b = np.random.randn(m)
-    # Ax = b & Ax + b = 0
+    
+    ## To align with the Ax + b <= 0 format
+    b = -b
     
     # Save the variables as code to a file
     with open(FILE, "w") as f:
@@ -74,5 +76,3 @@ if __name__ == "__main__":
     right_vec[n:] = b
     x_ref = np.linalg.solve(left_mat, right_vec)[:n]
     print(f"x_ref: {-x_ref}")
-    opt_val = 0.5 * x_ref.T @ P @ x_ref + q.T @ x_ref
-    print(f"Optimal Value: {opt_val}")

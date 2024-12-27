@@ -11,12 +11,16 @@ def printVec(x: np.ndarray, num_digits: int = 4):
     print()
 
 
-def reference(cfg_file: str = None):
-    
+def reference(cfg_file: str = None, method = "cvxopt"):
+    if cfg_file is None:
+        raise ValueError("Please provide a configuration file.")
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
     I_FLAG = False
     E_FLAG = False
+
+    print("====================  Ref. ====================")
+    print("Reference Method: {}".format(method))
 
     H = sp.csc_matrix(H)
     if (AI is not None) and (bI is not None):
@@ -29,21 +33,21 @@ def reference(cfg_file: str = None):
         #bE = sp.csc_matrix(bE)
         E_FLAG = True
     if (I_FLAG and E_FLAG):
-        x = solve_qp(H, g, G = AI, h = -bI, A = AE, b = -bE, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = -bI, A = AE, b = -bE, solver = method)
     elif I_FLAG:
-        x = solve_qp(H, g, G = AI, h = -bI, solver = "osqp")
+        x = solve_qp(H, g, G = AI, h = -bI, solver = method)
     elif E_FLAG:
-        x = solve_qp(H, g, A = AE, b = -bE, solver = "osqp")
+        x = solve_qp(H, g, A = AE, b = -bE, solver = method)
     else:
-        x = solve_qp(H, g, solver = "osqp")
+        x = solve_qp(H, g, solver = method)
     
     if x is None:
         print("The problem is infeasible.")
         return None
     else:
-        print("Solution: ", end = "")
+        print("Ref. Sol: ", end = "")
         printVec(x)
-        print("Objective Value: ", end = "")
+        print("Optimal Val: ", end = "")
         print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
     
     # if I_FLAG:
@@ -68,7 +72,6 @@ def reference(cfg_file: str = None):
         # check_feasible(x, AE, bE, "equ")
 
     return x
-   
 
 
 

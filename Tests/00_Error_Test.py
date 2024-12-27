@@ -2,9 +2,9 @@ import numpy as np
 import os, sys
 
 # Constants
-alpha = 1e-2
+alpha = 0.1
 nonzero_ratio = 0.15
-FILE = "../01_RANDOM_QP.txt"
+FILE = "../00_ERROR_QP.txt"
 
 # Variables
 n = 5
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     np.random.seed(random_seed)
     
     # Generate variables
-    m = 10 * n
+    m = 2 * n
     I_n = np.identity(n)
     
     # Generate P, q, A, b
@@ -34,7 +34,11 @@ if __name__ == "__main__":
     if num_nonzero_NN < 1:
         num_nonzero_NN = 1
     M[np.random.randint(0, n, num_nonzero_NN), np.random.randint(0, n, num_nonzero_NN)] = np.random.randn(num_nonzero_NN)
-    P = M @ M.T + alpha * I_n
+    P = M @ M.T - alpha * I_n
+    
+    P_Eigenvalues = np.linalg.eigvals(P)
+    #print(f"Eigenvalues of P: {P_Eigenvalues}")
+    
     ## q: Random vector
     q = np.random.randn(n)
     

@@ -37,6 +37,11 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
     y = np.zeros(m)
     ## Step 2: Run OSQP
     for iter in range(MAX_ITER):
+        # Step 0: Check x^THx is positive
+        check_vec = x.T @ H @ x
+        if check_vec < -EPS:
+            raise ValueError("H is not positive definite!")
+        
         # Step 1: Solve the linear system subproblem
         ## Step 1.1: Compute the matrix and vector
         
@@ -78,8 +83,8 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
         # printVec(z_new)
         r_primal = np.linalg.norm(A @ x_new - z_new)
         r_dual = np.linalg.norm(H @ x_new + g + A.T @ y_new)
-        if iter % (MAX_ITER // 1000) == 0:
-            print(f"Iter: {iter}, r_primal: {r_primal}, r_dual: {r_dual}")
+        #if iter % (MAX_ITER // 1000) == 0:
+        #    print(f"Iter: {iter}, r_primal: {r_primal}, r_dual: {r_dual}")
         if r_primal < EPS and r_dual < EPS:
             break
         # Step 3: Update rho and sigma
@@ -127,9 +132,9 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g:
     
     x = ADAL(A, l, u, g, H, rho, sigma, alpha)
     
-    print("Algorithm Finished.")
-    print("x: ", end = "")
-    printVec(x)
+    #print("Algorithm Finished.")
+    #print("x: ", end = "")
+    #printVec(x)
     # print("Objective Value: ", end = "")
     # print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
     
@@ -146,16 +151,22 @@ if __name__ == "__main__":
     I_n = np.identity(n)
     I_m = np.identity(m)
 
+    print("==================== ADAL ====================")
     x = QP_solver(AE, AI, bE, bI, g, H)
     
-  
+    print("x: ", end = "")
+    printVec(x)
     print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
         
     if (AI is not None) and (bI is not None):
-        check_feasible(x, AI, bI, "inequ")
+        print("*", end=" ")
+        check_feasible(x, AI, bI, "inequ", optimal_check_eps=1e-4)
+    else:
+        print("* No inequality constraints.")
     if (AE is not None) and (bE is not None):
-        check_feasible(x, AE, bE, "equ")
+        print("*", end=" ")
+        check_feasible(x, AE, bE, "equ", optimal_check_eps=1e-4)
+    else:
+        print("* No equality constraints.")
 
     ans = reference(cfg_file)
-    print("Reference Answer: ", end = "")
-    printVec(ans)

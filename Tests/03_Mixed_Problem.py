@@ -3,11 +3,11 @@ import os, sys
 
 # Constants
 alpha = 1e-2
-nonzero_ratio = 0.15
-FILE = "../01_RANDOM_QP.txt"
+nonzero_ratio = 0.3
+FILE = "../03_MIXED_QP.txt"
 
 # Variables
-n = 5
+n = 2
 random_seed = 0
 
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     np.random.seed(random_seed)
     
     # Generate variables
-    m = 10 * n
+    m_INEQ = 4 * n
     I_n = np.identity(n)
     
     # Generate P, q, A, b
@@ -39,36 +39,43 @@ if __name__ == "__main__":
     q = np.random.randn(n)
     
     ## A: Random matrix
-    A = np.zeros((m, n))
-    num_nonzero_MN = int(n * m * nonzero_ratio)
+    A = np.zeros((m_INEQ, n))
+    num_nonzero_MN = int(n * m_INEQ * nonzero_ratio)
     if num_nonzero_MN < 1:
         num_nonzero_MN = 1
-    A[np.random.randint(0, m, num_nonzero_MN), np.random.randint(0, n, num_nonzero_MN)] = np.random.randn(num_nonzero_MN)
+    A[np.random.randint(0, m_INEQ, num_nonzero_MN), np.random.randint(0, n, num_nonzero_MN)] = np.random.randn(num_nonzero_MN)
     ## l <= Ax <= u
-    left_bound = np.random.uniform(-1, 0, (m))
-    right_bound = np.random.uniform(0, 1, (m))
+    left_bound = np.random.uniform(-1, 0, (m_INEQ))
+    right_bound = np.random.uniform(0, 1, (m_INEQ))
     
-    Final_A = np.zeros((2*m, n))
-    Final_A[:m] = A
-    Final_A[m:] = -A
-    Final_b = np.zeros(2*m)
-    Final_b[:m] = right_bound # Ax <= u == Ax + (-u) <= 0
-    Final_b[m:] = -left_bound # -Ax <= -l == -Ax + l <= 0
+    Final_A = np.zeros((2*m_INEQ, n))
+    Final_A[:m_INEQ] = A
+    Final_A[m_INEQ:] = -A
+    Final_b = np.zeros(2*m_INEQ)
+    Final_b[:m_INEQ] = right_bound # Ax <= u
+    Final_b[m_INEQ:] = -left_bound # -Ax <= -l
     
-    # To align with the Ax + b <= 0 format 
+    # 1 Equality constraints
+    m_EQ = 1
+    num_nonzero_MN_EQ = int(n * m_EQ * nonzero_ratio)
+    A_EQ = np.random.randn(m_EQ, n)
+    ## b: Random vector
+    b_EQ = np.random.randn(m_EQ)
+    
+    ## To align with the Ax + b <= 0 format
     Final_b = -Final_b
     
     # Save the variables as code to a file
     with open(FILE, "w") as f:
         f.write(f"n: {n}\n")
-        f.write(f"m: {2 * m}\n")
+        f.write(f"m: {2 * m_INEQ + 1}\n")
         # To flatten the matrix, we use the .tolist() method
         f.write(f"H: {P.tolist()}\n")
         f.write(f"g: {q.tolist()}\n")
         f.write(f"AI: {Final_A.tolist()}\n")
         f.write(f"bI: {Final_b.tolist()}\n")
-        f.write(f"AE: None\n")
-        f.write(f"bE: None\n")
+        f.write(f"AE: {A_EQ.tolist()}\n")
+        f.write(f"bE: {(-b_EQ).tolist()}\n")
     
     print("========== Random QP Generated ==========")
-    print(f"n: {n}, m: {2 * m}")
+    print(f"n: {n}, m: {2 * m_INEQ + 1}")

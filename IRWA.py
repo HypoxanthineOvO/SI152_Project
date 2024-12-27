@@ -76,6 +76,8 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     x : ndarray (n,)
         The solution after iterations.
     """
+    
+    
     x_k = x_init.copy()
    
     A = np.vstack([AE, AI]) if AE is not None and AI is not None else AE if AE is not None else AI
@@ -148,8 +150,24 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g:
         bI_original = bI.copy()
         I_FLAG = True
     c = np.zeros(H.shape[0])
-    result = linprog(c, A_ub=AI_original, b_ub=-bI_original, A_eq=AE_original, b_eq=-bE_original, bounds=[(None, None)]*H.shape[0])
-    print(result.success)
+    
+    I_FLAG, E_FLAG = False, False
+    if AI is not None and bI is not None:
+        I_FLAG = True
+    if AE is not None and bE is not None:
+        E_FLAG = True
+    
+    if I_FLAG and E_FLAG:
+        result = linprog(c, A_ub=AI_original, b_ub=-bI_original, A_eq=AE_original, b_eq=-bE_original, bounds=[(None, None)]*H.shape[0])
+    elif I_FLAG:
+        result = linprog(c, A_ub=AI_original, b_ub=-bI_original, bounds=[(None, None)]*H.shape[0])
+    elif E_FLAG:
+        result = linprog(c, A_eq=AE_original, b_eq=-bE_original, bounds=[(None, None)]*H.shape[0])
+    else:
+        result = linprog(c, bounds=[(None, None)]*H.shape[0])
+    #print(result.success)
+    
+    
     if not result.success:
         print("The problem is infeasible.")
         return None
@@ -185,8 +203,8 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g:
         lst2.append(np.exp(-k / 10) + 1)
         x_k = x_next
         value = 1 / 2 * x_k.T @ H @ x_k + g @ x_k
-        if k % 10 == 0:
-            print(f"The {k+1}th iter: {x_k} and function value is {value}, penalty is {penalty}")
+        #if k % 10 == 0:
+        #    print(f"The {k+1}th iter: {x_k} and function value is {value}, penalty is {penalty}")
     
     return x_k
 
@@ -199,6 +217,7 @@ if __name__ == "__main__":
         cfg_file = "./Testcases/reference.txt"
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
     
+    print("==================== IRWA ====================")
     x = QP_solver(AE, AI, bE, bI, g, H)
     if x is not None:
         print("x:", end=" ")
@@ -206,15 +225,14 @@ if __name__ == "__main__":
         print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
     
         if (AI is not None) and (bI is not None):
+            print("*", end=" ")
             check_feasible(x, AI, bI, "inequ", optimal_check_eps=1e-4)
+        else:
+            print("* No inequality constraints.")
         if (AE is not None) and (bE is not None):
+            print("*", end=" ")
             check_feasible(x, AE, bE, "equ", optimal_check_eps=1e-4)
-        
+        else:
+            print("* No equality constraints.")
     ans = reference(cfg_file)
-
-
-    
-    
-    
-    
 
