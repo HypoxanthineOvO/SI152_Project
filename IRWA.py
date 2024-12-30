@@ -236,3 +236,5 @@ if __name__ == "__main__":
             print("* No equality constraints.")
     ans = reference(cfg_file)
 
+    if (np.linalg.norm(x - ans) < 1e-4):
+        print("========== IRWA Test Passed ==========")
