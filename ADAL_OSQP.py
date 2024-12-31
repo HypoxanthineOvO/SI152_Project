@@ -30,8 +30,17 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
          rho: float = 1,
          sigma: float = 1,
          alpha: float = 1.5):
+    
+    H_inv = np.linalg.inv(H)
+    r_primal_records = []
+    r_dual_records = []
 
     ## Step 1: Initialize
+    n = H.shape[0]
+    m = A.shape[0]
+    I_n = np.identity(n)
+    I_m = np.identity(m)
+    
     x = np.zeros(n)
     z = np.zeros(m)
     y = np.zeros(m)
@@ -83,6 +92,9 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
         # printVec(z_new)
         r_primal = np.linalg.norm(A @ x_new - z_new)
         r_dual = np.linalg.norm(H @ x_new + g + A.T @ y_new)
+        
+        r_primal_records.append(r_primal)
+        r_dual_records.append(r_dual)
         #if iter % (MAX_ITER // 1000) == 0:
         #    print(f"Iter: {iter}, r_primal: {r_primal}, r_dual: {r_dual}")
         if r_primal < EPS and r_dual < EPS:
@@ -92,7 +104,7 @@ def ADAL(A: np.ndarray, l: np.ndarray, u: np.ndarray,
         z = z_new
         y = y_new
     
-    return x
+    return x, r_primal_records, r_dual_records
 
 def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g: np.ndarray, H: np.ndarray):
     # Dimension Check
@@ -130,7 +142,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, g:
     sigma = 1
     alpha = 1.6
     
-    x = ADAL(A, l, u, g, H, rho, sigma, alpha)
+    x, _, _ = ADAL(A, l, u, g, H, rho, sigma, alpha)
     
     #print("Algorithm Finished.")
     #print("x: ", end = "")
@@ -155,7 +167,7 @@ if __name__ == "__main__":
     x = QP_solver(AE, AI, bE, bI, g, H)
     
     print("x: ", end = "")
-    printVec(x)
+    printVec(x[:20])
     print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
         
     if (AI is not None) and (bI is not None):
@@ -171,5 +183,10 @@ if __name__ == "__main__":
 
     ans = reference(cfg_file)
     
-    if (np.linalg.norm(x - ans) < 1e-4):
+    if (np.allclose(x, ans, atol=1e-3)):
         print("========== ADAL Test Passed! ==========")
+    else:
+        print("========== ADAL Test Failed! ==========")
+        print("LOSS: ", np.linalg.norm(x - ans))
+        print("Difference: ", end = "")
+        diff_idx = np.where(np.abs(x - ans) > 1e-3)

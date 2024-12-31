@@ -46,7 +46,7 @@ def reference(cfg_file: str = None, method = "piqp"):
         return None
     else:
         print("Ref. Sol: ", end = "")
-        printVec(x)
+        printVec(x[:20])
         print("Optimal Val: ", end = "")
         print(round(0.5 * x.T @ H @ x + g.T @ x, 4))
     

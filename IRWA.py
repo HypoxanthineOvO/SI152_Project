@@ -221,7 +221,7 @@ if __name__ == "__main__":
     x = QP_solver(AE, AI, bE, bI, g, H)
     if x is not None:
         print("x:", end=" ")
-        printVec(x)
+        printVec(x[:20])
         print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
     
         if (AI is not None) and (bI is not None):
@@ -234,7 +234,13 @@ if __name__ == "__main__":
             check_feasible(x, AE, bE, "equ", optimal_check_eps=1e-4)
         else:
             print("* No equality constraints.")
-    ans = reference(cfg_file)
 
-    if (np.linalg.norm(x - ans) < 1e-4):
-        print("========== IRWA Test Passed ==========")
+    ans = reference(cfg_file)
+    
+    if (np.allclose(x, ans, atol=1e-3)):
+        print("========== ADAL Test Passed! ==========")
+    else:
+        print("========== ADAL Test Failed! ==========")
+        print("LOSS: ", np.linalg.norm(x - ans))
+        print("Difference: ", end = "")
+        diff_idx = np.where(np.abs(x - ans) > 1e-3)

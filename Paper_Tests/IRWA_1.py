@@ -1,5 +1,5 @@
 import numpy as np
-import os, sys
+import os, sys, argparse
 from scipy.optimize import linprog
 
 def is_constraints_nonempty(A, b, C, d):
@@ -60,15 +60,19 @@ def is_constraints_nonempty(A, b, C, d):
         return False
 
 if __name__ == "__main__":
-    np.random.seed(0)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file", help="The file to save the generated testcase")
+    parser.add_argument("--seed", type=int, default=-1, help="Random seed")
+    parser.add_argument("--n", type=int, default=1000, help="The dimension of the problem")
+    parser.add_argument("--m", type=int, default=600, help="The number of constraints")
     
-    if (len(sys.argv) > 1):
-        FILE = sys.argv[1]
-    else:
-        FILE = "../IRWA_1.txt"
+    args = parser.parse_args()
     
-    n = 1000
-    m = 600
+    FILE = args.file
+    n = args.n
+    m = args.m
+    if args.seed != -1:
+        np.random.seed(args.seed)
     # Generate H: Random matrix
     ## L: n\times n, Gaussian with mean = 1, std = 2 
     L = np.random.normal(1, 2, (n, n))
