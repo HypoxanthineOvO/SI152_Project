@@ -2,7 +2,7 @@ import os, sys, shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
-from ADAL_OSQP import ADAL
+from OSQP import ADAL
 from IRWA import IRWA
 from utils import init_from_config, check_feasible
 from reference import reference
