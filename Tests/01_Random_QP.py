@@ -3,7 +3,7 @@ import os, sys
 
 # Constants
 alpha = 1e-2
-nonzero_ratio = 0.15
+nonzero_ratio = 0.8
 FILE = "../01_RANDOM_QP.txt"
 
 # Variables
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     np.random.seed(random_seed)
     
     # Generate variables
-    m = 10 * n
+    m = 1 * n
     I_n = np.identity(n)
     
     # Generate P, q, A, b

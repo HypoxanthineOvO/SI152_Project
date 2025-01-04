@@ -150,5 +150,5 @@ def parse_config_to_lingo(
     print(OBJECTIVE_STR)
 
 if __name__ == "__main__":
-    n, m, H, g, AI, bI, AE, bE = init_from_config("./Tests/01-MidDim.txt")
+    n, m, H, g, AI, bI, AE, bE = init_from_config("./Tests/00-Random.txt")
     parse_config_to_lingo(n, m, H, g, AI, bI, AE, bE)
