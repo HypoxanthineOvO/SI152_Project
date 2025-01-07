@@ -18,13 +18,15 @@ def ADAL(
     H: np.ndarray, g: np.ndarray,
     A: np.ndarray, b: np.ndarray, eq_cnt: int, ineq_cnt: int,
     mu: float, sigma: float = 1e-5, sigmapp: float = 1e-5,
+    init_x: np.ndarray = None
 ):
     n = H.shape[0]
     m = ineq_cnt + eq_cnt
     assert m == A.shape[0], "Inequality and equality constraints do not match the dimension of the problem"
     
     # Initialize
-    x = np.zeros(n)
+    if init_x is not None:
+        x = np.zeros(n)
     u = np.zeros(m)
     p = np.zeros(m)
     
