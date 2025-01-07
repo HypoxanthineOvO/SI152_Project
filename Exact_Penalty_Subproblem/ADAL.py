@@ -28,6 +28,9 @@ def ADAL(
     u = np.zeros(m)
     p = np.zeros(m)
     
+    x_log = [x]
+    print(f"Initialize, Objective: {round(eval_exact_penalty(H, g, A, b, eq_cnt, ineq_cnt, x), 4)}, loss = 0.000000 & {round(np.linalg.norm(A @ x + b - p), 6)}")
+    
     for iter in range(10000):
         # Step 1: Solve the augmented Lagrangian subproblem for (x^{k+1}, p^{k+1})
         ## Step 1.1: optimize p
@@ -38,7 +41,7 @@ def ADAL(
                 proj_pt = 0
             else: # i >= eq_cnt, inequality constraints
                 proj_pt = 0
-                if s[i] < 0:
+                if s[i] <= 0:
                     proj_pt = s[i]
             dist = np.linalg.norm(s[i] - proj_pt)
             if (dist <= mu):
@@ -72,15 +75,16 @@ def ADAL(
         p = p_new
         u = u_new
         
-        print(f"Iter {iter:5}, loss = {round(loss_1, 6):.6f} & {round(loss_2, 6):.6f}")
-    return x
+        x_log.append(x)
+        print(f"Iter {iter:5}, Objective: {round(eval_exact_penalty(H, g, A, b, eq_cnt, ineq_cnt, x), 4)}, loss = {round(loss_1, 6):.6f} & {round(loss_2, 6):.6f}")
+    return x, x_log
 
 if __name__ == "__main__":
     FILE = "./Tests/00-Easy.txt"
     if (len(sys.argv) > 1):
         FILE = sys.argv[1]
     
-    n, m, H, g, AI, bI, AE, bE = init_from_config(FILE)
+    n, m, H, g, AI, bI, AE, bE, ref, ref_val = init_from_config(FILE)
     
     
     equal_cnt = AE.shape[0] if AE is not None else 0
@@ -96,13 +100,13 @@ if __name__ == "__main__":
         A[equal_cnt:] = AI
         b[equal_cnt:] = bI
     
-    print(A, b)
-    x = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5)
+    #print(A, b)
+    x, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5)
     
-    print(f"Solution:", end = " ")
+    print(f"Solution:", end = " [")
     for i in range(n):
         print(f"{round(x[i], 4)}", end = " ")
-    print()
+    print("]")
     #print(f"Objective: {0.5 * x.T @ H @ x + g @ x}")
     print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x)}")
     for i in range(m):
@@ -111,13 +115,25 @@ if __name__ == "__main__":
         else:
             print(f"Inequality {i}: {A[i] @ x + b[i]}")
     
-    #ref_x = np.array([0.2323276, 0.000000 , 0.2177959E-08, 131.0391])
-    # ref_x = np.array([0.25, 1.25])
-    # print(f"Reference: {ref_x}")
-    # #print(f"Reference Objective: {ref_obj}")
-    # print(f"Reference Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, ref_x)}")
-    # for i in range(m):
-    #     if (i < equal_cnt):
-    #         print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
-    #     else:
-    #         print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
+    if (ref is not None) and (ref_val is not None):
+        ref_x = np.array(ref)
+        ref_val = ref_val
+        print(f"Reference: {ref_x}")
+        #print(f"Reference Objective: {ref_obj}")
+        print(f"Reference Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, ref_x)}")
+        print(f"Reference Objective: {ref_val}")
+        for i in range(m):
+            if (i < equal_cnt):
+                print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
+            else:
+                print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
+    
+        diff = np.linalg.norm(x - ref_x)
+        print(f"Distance: {diff}")
+        if diff < 1e-4:
+            print("========== Test Passed ==========")
+    # Log
+    with open("ADAL.log", "w") as f:
+        f.write(f"Init: {log[0]}\n")
+        for i in range(1, len(log)):
+            f.write(f"Iter {i}: {log[i]}\n")

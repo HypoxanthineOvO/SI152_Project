@@ -1,5 +1,5 @@
 import numpy as np
-import os
+import os, sys
 
 def loadConfig(cfg_path: str):
     assert os.path.exists(cfg_path), f"Config file {cfg_path} does not exist"
@@ -80,12 +80,21 @@ def parseConfig(config: dict):
     if (AE is None) ^ (bE is None):
         raise ValueError("AE and bE should have the same existence")
     
-    return n, m, H, g, AI, bI, AE, bE
+    # Ref & Ref_Val
+    if "ref" in config:
+        ref = np.array(config["ref"])
+    else:
+        ref = None
+    if "ref_val" in config:
+        ref_val = config["ref_val"][0]
+    else:
+        ref_val = None
+    return n, m, H, g, AI, bI, AE, bE, ref, ref_val
 
 def init_from_config(path: str):
     cfg = loadConfig(path)
-    n, m, H, g, AI, bI, AE, bE = parseConfig(cfg)
-    return n, m, H, g, AI, bI, AE, bE
+    n, m, H, g, AI, bI, AE, bE, ref, ref_val = parseConfig(cfg)
+    return n, m, H, g, AI, bI, AE, bE, ref, ref_val
 
 def parse_config_to_lingo(
     n,m,H,g,AI,bI,AE,bE,
@@ -150,5 +159,8 @@ def parse_config_to_lingo(
     print(OBJECTIVE_STR)
 
 if __name__ == "__main__":
-    n, m, H, g, AI, bI, AE, bE = init_from_config("./Tests/00-Random.txt")
+    FILE = "./Tests/00-Easy.txt"
+    if (len(sys.argv) > 1):
+        FILE = sys.argv[1]
+    n, m, H, g, AI, bI, AE, bE,_, _ = init_from_config(FILE)
     parse_config_to_lingo(n, m, H, g, AI, bI, AE, bE)

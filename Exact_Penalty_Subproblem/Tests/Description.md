@@ -63,6 +63,10 @@ Variable           Value        Reduced Cost
       X2      -0.1927804E-08        3.811319
 ```
 
+其中，惩罚项为：
+0.3714034;
+0.0000000;
+
 ## Mid Dimension Testcase
 ### Testcase
 ```
