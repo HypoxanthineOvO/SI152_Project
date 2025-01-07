@@ -157,6 +157,12 @@ def parse_config_to_lingo(
         OBJECTIVE_STR += ");\n"
         #TODO: Parse by add constraints
     print(OBJECTIVE_STR)
+    
+    # Constraint str
+    CONSTRAINT_STR = ""
+    for i in range(1, n+1):
+        CONSTRAINT_STR += f"@FREE(x{i});\n"
+    print(CONSTRAINT_STR)
 
 if __name__ == "__main__":
     FILE = "./Tests/00-Easy.txt"
