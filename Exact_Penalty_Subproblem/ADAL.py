@@ -1,6 +1,5 @@
 import numpy as np
 import os, sys
-from Transform_Test_To_Lingo import init_from_config
 
 def eval_exact_penalty(
     H: np.ndarray, g: np.ndarray, 
@@ -18,7 +17,8 @@ def ADAL(
     H: np.ndarray, g: np.ndarray,
     A: np.ndarray, b: np.ndarray, eq_cnt: int, ineq_cnt: int,
     mu: float, sigma: float = 1e-5, sigmapp: float = 1e-5,
-    init_x: np.ndarray = None
+    init_x: np.ndarray = None,
+    show_log: bool = False
 ):
     n = H.shape[0]
     m = ineq_cnt + eq_cnt
@@ -31,7 +31,8 @@ def ADAL(
     p = np.zeros(m)
     
     x_log = [x]
-    print(f"Initialize, Objective: {round(eval_exact_penalty(H, g, A, b, eq_cnt, ineq_cnt, x), 4)}, loss = 0.000000 & {round(np.linalg.norm(A @ x + b - p), 6)}")
+    if show_log:
+        print(f"Initialize, Objective: {round(eval_exact_penalty(H, g, A, b, eq_cnt, ineq_cnt, x), 4)}, loss = 0.000000 & {round(np.linalg.norm(A @ x + b - p), 6)}")
     
     for iter in range(10000):
         # Step 1: Solve the augmented Lagrangian subproblem for (x^{k+1}, p^{k+1})
@@ -70,7 +71,8 @@ def ADAL(
         loss_2 = np.linalg.norm(A @ x_new + b - p_new)
         
         if loss_1 < sigma and loss_2 < sigmapp:
-            print(f"\nAlgorithm Converged at iter {iter}: loss 1 = {loss_1}, loss 2 = {loss_2}")
+            if show_log:
+                print(f"\nAlgorithm Converged at iter {iter}: loss 1 = {loss_1}, loss 2 = {loss_2}")
             break
         # Step 4: Update Variables
         x = x_new
@@ -78,10 +80,12 @@ def ADAL(
         u = u_new
         
         x_log.append(x)
-        print(f"Iter {iter:5}, Objective: {round(eval_exact_penalty(H, g, A, b, eq_cnt, ineq_cnt, x), 4)}, loss = {round(loss_1, 6):.6f} & {round(loss_2, 6):.6f}")
+        if show_log:
+            print(f"Iter {iter:5}, Objective: {round(eval_exact_penalty(H, g, A, b, eq_cnt, ineq_cnt, x), 4)}, loss = {round(loss_1, 6):.6f} & {round(loss_2, 6):.6f}")
     return x, x_log
 
 if __name__ == "__main__":
+    from Transform_Test_To_Lingo import init_from_config
     FILE = "./Tests/00-Easy.txt"
     if (len(sys.argv) > 1):
         FILE = sys.argv[1]
@@ -103,7 +107,7 @@ if __name__ == "__main__":
         b[equal_cnt:] = bI
     
     #print(A, b)
-    x, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5)
+    x, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5, show_log = True)
     
     print(f"Solution:", end = " [")
     for i in range(n):

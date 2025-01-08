@@ -153,10 +153,48 @@ def parse_config_to_lingo(
                 OBJECTIVE_STR += f"+ {bI[i]}) "
         
         OBJECTIVE_STR += ";\n"
+        print(OBJECTIVE_STR)
     else:
         OBJECTIVE_STR += ");\n"
-        #TODO: Parse by add constraints
-    print(OBJECTIVE_STR)
+        print(OBJECTIVE_STR)
+        # TODO: Parse by add constraints
+        ## Parse AE, bE: AE * x = bE
+        if (AE is not None) and (bE is not None):
+            for i in range(AE.shape[0]):
+                if (np.all(np.abs(AE[i]) < 1e-6)):
+                    continue
+                CONSTRAINT_STR = ""
+                for j in range(n):
+                    if (np.abs(AE[i, j]) < 1e-6):
+                        continue
+                    CONSTRAINT_STR += f"{AE[i, j]} * {xs[j]} "
+                    if j != n - 1:
+                        CONSTRAINT_STR += "+ "
+                # End with a "+", remove it
+                if CONSTRAINT_STR[-2:] == "+ ":
+                    CONSTRAINT_STR = CONSTRAINT_STR[:-2]
+                CONSTRAINT_STR += f"+ {bE[i]} = 0;"
+                print(CONSTRAINT_STR)
+        ## Parse AI, bI: AI * x <= bI
+        if (AI is not None) and (bI is not None):
+            for i in range(AI.shape[0]):
+                if (np.all(np.abs(AI[i]) < 1e-6)):
+                    continue
+                CONSTRAINT_STR = ""
+                for j in range(n):
+                    if (np.abs(AI[i, j]) < 1e-6):
+                        continue
+                    CONSTRAINT_STR += f"{AI[i, j]} * {xs[j]} "
+                    if j != n - 1:
+                        CONSTRAINT_STR += "+ "
+                
+                # End with a "+", remove it
+                if CONSTRAINT_STR[-2:] == "+ ":
+                    CONSTRAINT_STR = CONSTRAINT_STR[:-2]
+                CONSTRAINT_STR += f"+ {bI[i]} <= 0;"
+                print(CONSTRAINT_STR)
+        
+        
     
     # Constraint str
     CONSTRAINT_STR = ""
@@ -168,5 +206,11 @@ if __name__ == "__main__":
     FILE = "./Tests/00-Easy.txt"
     if (len(sys.argv) > 1):
         FILE = sys.argv[1]
+    if len(sys.argv) > 2:
+        is_Exact_Penalty = (int(sys.argv[2]) == 1)
     n, m, H, g, AI, bI, AE, bE,_, _ = init_from_config(FILE)
-    parse_config_to_lingo(n, m, H, g, AI, bI, AE, bE)
+    
+    print("==================== Transform_Test_To_Lingo ====================")
+    print(f"n: {n}, m: {m}")
+    print("IS_EXACT_PENALTY: ", is_Exact_Penalty)
+    parse_config_to_lingo(n, m, H, g, AI, bI, AE, bE, is_Exact_Penalty)
