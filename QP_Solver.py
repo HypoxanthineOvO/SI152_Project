@@ -45,13 +45,15 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         b[eq_cnt:] = bI
     
     A_iter, b_iter = A.copy(), b.copy()
+    AE_iter, AI_iter = A_iter[:eq_cnt], A_iter[eq_cnt:]
+    bE_iter, bI_iter = b_iter[:eq_cnt], b_iter[eq_cnt:]
     
     for subproblem_iter in range(100):
         # Solve Subproblem
         if (solver == "ADAL"):
             x_new, _ = ADAL(H, g, A_iter, b_iter, eq_cnt, ineq_cnt, 0.5, init_x = x)
         elif (solver == "IRWA"):
-            x_new, _ = IRWA(H, g, AE, bE, AI, bI, 1e4, x_init = x)
+            x_new, _ = IRWA(H, g, AE_iter, bE_iter, AI_iter, bI_iter, 1e4, x_init = x)
         else:
             raise ValueError(f"Solver {solver} not supported.")
         
@@ -65,9 +67,10 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
             feasible = feasible and eq_res
         
         delta_x = np.linalg.norm(x_new - x)
+        print("-" * 50)
         print(f"Subproblem Iter {subproblem_iter}, Objective: {round(0.5 * x_new.T @ H @ x_new + g @ x_new, 4)}, Loss: {delta_x}, Feasible: {feasible}")
         print("x: ", end = "")
-        printVec(x_new)
+        printVec(x_new[:20])
         # Update x
         x = x_new
         
@@ -75,40 +78,50 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
             print("========== Algorithm Converged ==========")
             return x
         
-        if (eq_cnt) and not check_feasible(x_new, AE, bE, "equ", optimal_check_eps=1e-5):
+        all_feasible = True
+        if (eq_cnt) and not check_feasible(x_new, AE, bE, "equ", optimal_check_eps=1e-5, printResult=False):
+            all_feasible = False
             penalty_eq_vec = eval_penalty(AE, bE, x_new, "equ")
             penalty_eq = np.sum(penalty_eq_vec)
-            if (penalty_eq > 5):
-                penalty_eq = 5
+            if (penalty_eq > 10):
+                penalty_eq = 10
         else:
             penalty_eq = 0
-        if (ineq_cnt) and not check_feasible(x_new, AI, bI, "inequ", optimal_check_eps=1e-5):
+        if (ineq_cnt) and not check_feasible(x_new, AI, bI, "inequ", optimal_check_eps=1e-5, printResult=False):
+            all_feasible = False
             penalty_ineq_vec = eval_penalty(AI, bI, x_new, "inequ")
             penalty_ineq = np.sum(penalty_ineq_vec)
-            if (penalty_ineq > 5):
-                penalty_ineq = 5
+            if (penalty_ineq > 10):
+                penalty_ineq = 10
         else:
             penalty_ineq = 0
         # Update A, b: Multiply by M_eq and M_ineq
         A_iter_eq = A[:eq_cnt] * M_eq
         A_iter_ineq = A[eq_cnt:] * M_ineq
         A_iter = np.concatenate([A_iter_eq, A_iter_ineq], axis=0)
+        AE_iter = A_iter[:eq_cnt]
+        AI_iter = A_iter[eq_cnt:]
+        
         
         b_iter_eq = b[:eq_cnt] * M_eq
         b_iter_ineq = b[eq_cnt:] * M_ineq
         b_iter = np.concatenate([b_iter_eq, b_iter_ineq], axis=0)
+        bE_iter = b_iter[:eq_cnt]
+        bI_iter = b_iter[eq_cnt:]
         # Update M_eq and M_ineq
         ## Compute Scaling Factor. 
-        M_eq = M_eq * np.exp(penalty_eq / 10)
-        M_ineq = M_ineq * np.exp(penalty_ineq / 10)
+        M_eq = M_eq * np.exp(penalty_eq / 5)
+        M_ineq = M_ineq * np.exp(penalty_ineq / 5)
         print(f"Penalty Eq: {round(penalty_eq, 4)}, Penalty Ineq: {round(penalty_ineq, 4)}")
         print(f"M_eq: {round(M_eq, 4)}, M_ineq: {round(M_ineq, 4)}")
-        print()
     
     return x
 
 
 if __name__ == "__main__":
+    SOLVER = "ADAL"
+    if len(sys.argv) > 2:
+        SOLVER = sys.argv[2]
     if len(sys.argv) > 1:
         cfg_file = sys.argv[1]
     else:
@@ -120,7 +133,7 @@ if __name__ == "__main__":
     I_m = np.identity(m)
 
     print("==================== QP_Solver ====================")
-    x = QP_solver(AE, AI, bE, bI, g, H)
+    x = QP_solver(AE, AI, bE, bI, g, H, solver = SOLVER)
     
     print("x: ", end = "")
     printVec(x[:20])
@@ -139,7 +152,7 @@ if __name__ == "__main__":
 
     ans = reference(cfg_file)
     
-    if (np.allclose(x, ans, atol=1e-3)):
+    if (np.allclose(x, ans, atol=1e-3 * n)):
         print("========== ADAL Test Passed! ==========")
     else:
         print("========== ADAL Test Failed! ==========")

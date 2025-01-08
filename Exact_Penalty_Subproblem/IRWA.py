@@ -43,7 +43,7 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
          eta=0.995, gamma=1/6, M=10000, 
          sigma=1e-4, sigma_prime=1e-8, 
-         max_iter=100000):
+         max_iter=10000):
     """
     Iteratively solve the reweighted QP problem using the IRWA algorithm.
     Parameters
@@ -106,7 +106,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
             W = sp.diags(w2, format="csc")
             v = np.maximum(-AI @ x, bI)
 
-        # Solve the linear system: (H + A^T W A) x = - (g + A^T W v)
+        # Solve the linear system: (H + A^T W A) x + (g + A^T W v) = 0
         lhs = H + A.T @ W @ A
         rhs = -(g + v.T @ W @ A)
         # x_next = conjugate_gradient(lhs, rhs, x0=x_k)
@@ -118,8 +118,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         
         # Check condition for eps updating
         lhs_condition = np.abs(q_k)
-        rhs_condition = M * ((r_k**2 + eps_k**2)**(0.5 + gamma))
-        # print(f"lhs_condition: {lhs_condition}, rhs_condition: {rhs_condition}")    
+        rhs_condition = M * ((r_k**2 + eps_k**2)**(0.5 + gamma))  
         
         if np.all(lhs_condition <= rhs_condition):
             eps_next = eta * eps_k
@@ -142,7 +141,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
 
 if __name__ == "__main__":
     from Transform_Test_To_Lingo import init_from_config
-    FILE = "./Tests/00-Easy.txt"
+    FILE = "./Exact_Penalty_Test/00-Easy.txt"
     if (len(sys.argv) > 1):
         FILE = sys.argv[1]
     
@@ -162,12 +161,11 @@ if __name__ == "__main__":
         A[equal_cnt:] = AI
         b[equal_cnt:] = bI
     
-    #print(A, b)
-    #x, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5)
+    
     init_x = np.zeros(n)
     eps = 1e4
     x, log = IRWA(H, g, AE, bE, AI, bI, eps, init_x)
-    print(log)
+    #print(log)
     
     print(f"Solution:", end = " [")
     for i in range(n):
@@ -194,8 +192,12 @@ if __name__ == "__main__":
             else:
                 print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
     
+        diff = np.linalg.norm(x - ref_x) / n
+        print(f"Distance: {diff}")
+        if diff < 1e-3:
+            print("========== Test Passed ==========")
     # Log
-    with open("ADAL.log", "w") as f:
+    with open("IRWA.log", "w") as f:
         f.write(f"Init: {log[0]}\n")
         for i in range(1, len(log)):
             f.write(f"Iter {i}: {log[i]}\n")

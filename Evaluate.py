@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
 from OSQP import ADAL
-from IRWA import IRWA
+from IRWA_Deprecated import IRWA
 from utils import init_from_config, check_feasible
 from reference import reference
 
