@@ -133,7 +133,7 @@ def eval_penalty(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str):
     elif type == "equ":
         res = A @ x + b
         res = np.abs(res)
-    return np.sum(res)
+    return res
 
 def is_constraints_nonempty(A, b, C, d):
     """

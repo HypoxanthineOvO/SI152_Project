@@ -75,12 +75,18 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
             print("========== Algorithm Converged ==========")
             return x
         
-        if (eq_cnt):
-            penalty_eq = eval_penalty(AE, bE, x_new, "equ") / n
+        if (eq_cnt) and not check_feasible(x_new, AE, bE, "equ", optimal_check_eps=1e-5):
+            penalty_eq_vec = eval_penalty(AE, bE, x_new, "equ")
+            penalty_eq = np.sum(penalty_eq_vec)
+            if (penalty_eq > 5):
+                penalty_eq = 5
         else:
             penalty_eq = 0
-        if (ineq_cnt):
-            penalty_ineq = eval_penalty(AI, bI, x_new, "inequ") / n
+        if (ineq_cnt) and not check_feasible(x_new, AI, bI, "inequ", optimal_check_eps=1e-5):
+            penalty_ineq_vec = eval_penalty(AI, bI, x_new, "inequ")
+            penalty_ineq = np.sum(penalty_ineq_vec)
+            if (penalty_ineq > 5):
+                penalty_ineq = 5
         else:
             penalty_ineq = 0
         # Update A, b: Multiply by M_eq and M_ineq
@@ -93,8 +99,8 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         b_iter = np.concatenate([b_iter_eq, b_iter_ineq], axis=0)
         # Update M_eq and M_ineq
         ## Compute Scaling Factor. 
-        M_eq = M_eq + np.exp(penalty_eq / 10)
-        M_ineq = M_ineq + np.exp(penalty_ineq / 10)
+        M_eq = M_eq * np.exp(penalty_eq / 10)
+        M_ineq = M_ineq * np.exp(penalty_ineq / 10)
         print(f"Penalty Eq: {round(penalty_eq, 4)}, Penalty Ineq: {round(penalty_ineq, 4)}")
         print(f"M_eq: {round(M_eq, 4)}, M_ineq: {round(M_ineq, 4)}")
         print()
