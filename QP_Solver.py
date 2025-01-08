@@ -2,7 +2,7 @@ import numpy as np
 import os, sys
 from Exact_Penalty_Subproblem.ADAL import ADAL
 from Exact_Penalty_Subproblem.IRWA import IRWA
-from utils import init_from_config, check_feasible
+from utils import init_from_config, check_feasible, printVec, eval_penalty
 from reference import reference
 
 def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, 
@@ -58,21 +58,31 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         # Check Feasibility
         feasible = True
         if (AI is not None) and (bI is not None):
-            ineq_res = check_feasible(x_new, AI, bI, "inequ", printResult=False)
+            ineq_res = check_feasible(x_new, AI, bI, "inequ", optimal_check_eps = 1e-5 , printResult=False)
             feasible = feasible and ineq_res
         if (AE is not None) and (bE is not None):
-            eq_res = check_feasible(x_new, AE, bE, "equ", printResult=False)
+            eq_res = check_feasible(x_new, AE, bE, "equ", optimal_check_eps = 1e-5, printResult=False)
             feasible = feasible and eq_res
         
         delta_x = np.linalg.norm(x_new - x)
         print(f"Subproblem Iter {subproblem_iter}, Objective: {round(0.5 * x_new.T @ H @ x_new + g @ x_new, 4)}, Loss: {delta_x}, Feasible: {feasible}")
         print("x: ", end = "")
-        print(x_new)
-        if (feasible) and (delta_x < 1e-4):
-            print("========== Algorithm Converged ==========")
-            return x_new
+        printVec(x_new)
         # Update x
         x = x_new
+        
+        if (feasible) and (delta_x < 1e-5):
+            print("========== Algorithm Converged ==========")
+            return x
+        
+        if (eq_cnt):
+            penalty_eq = eval_penalty(AE, bE, x_new, "equ") / n
+        else:
+            penalty_eq = 0
+        if (ineq_cnt):
+            penalty_ineq = eval_penalty(AI, bI, x_new, "inequ") / n
+        else:
+            penalty_ineq = 0
         # Update A, b: Multiply by M_eq and M_ineq
         A_iter_eq = A[:eq_cnt] * M_eq
         A_iter_ineq = A[eq_cnt:] * M_ineq
@@ -82,9 +92,12 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         b_iter_ineq = b[eq_cnt:] * M_ineq
         b_iter = np.concatenate([b_iter_eq, b_iter_ineq], axis=0)
         # Update M_eq and M_ineq
-        M_eq = M_eq * 2
-        M_ineq = M_ineq * 1.5
-    
+        ## Compute Scaling Factor. 
+        M_eq = M_eq + np.exp(penalty_eq / 10)
+        M_ineq = M_ineq + np.exp(penalty_ineq / 10)
+        print(f"Penalty Eq: {round(penalty_eq, 4)}, Penalty Ineq: {round(penalty_ineq, 4)}")
+        print(f"M_eq: {round(M_eq, 4)}, M_ineq: {round(M_ineq, 4)}")
+        print()
     
     return x
 
@@ -104,8 +117,7 @@ if __name__ == "__main__":
     x = QP_solver(AE, AI, bE, bI, g, H)
     
     print("x: ", end = "")
-    #printVec(x[:20])
-    print(x)
+    printVec(x[:20])
     print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
         
     if (AI is not None) and (bI is not None):

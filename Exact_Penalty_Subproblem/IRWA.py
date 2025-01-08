@@ -1,6 +1,5 @@
 import numpy as np
 import os, sys
-from Transform_Test_To_Lingo import init_from_config
 import scipy.sparse as sp
 
 def eval_exact_penalty(
@@ -142,6 +141,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     return x, x_logs
 
 if __name__ == "__main__":
+    from Transform_Test_To_Lingo import init_from_config
     FILE = "./Tests/00-Easy.txt"
     if (len(sys.argv) > 1):
         FILE = sys.argv[1]

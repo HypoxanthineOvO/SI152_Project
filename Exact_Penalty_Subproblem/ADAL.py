@@ -26,6 +26,8 @@ def ADAL(
     
     # Initialize
     if init_x is not None:
+        x = init_x
+    else:
         x = np.zeros(n)
     u = np.zeros(m)
     p = np.zeros(m)
@@ -52,16 +54,10 @@ def ADAL(
             else:
                 p_new[i] = s[i] - mu / dist * (s[i] - proj_pt)
         ## Step 1.2: optimize x
-        x_new = x
-        for x_opt_iter in range(10000):
-            grad = H @ x_new + g + 1 / mu * (A.T @ A @ x_new + A.T @ (b - p_new + mu * u))
-            x_new = x_new - grad * 0.01
-            if np.linalg.norm(grad) < sigma:
-                #print(f"Converged at iter {x_opt_iter}")
-                break
-        grad = H @ x_new + g + 1 / mu * (A.T @ A @ x_new + A.T @ (b - p_new + mu * u))
-        if np.linalg.norm(grad) > sigma:
-            raise Exception(f"Failed to converge at iter {iter}")
+        ### 操，正经人谁玩梯度下降啊
+        left_Matrix = H + 1 / mu * A.T @ A
+        right_Vector = g + 1 / mu * A.T @ (b - p_new + mu * u)
+        x_new = np.linalg.solve(left_Matrix, -right_Vector)
         
         # Step 2: Optimize u
         u_new = u + 1 / mu * (A @ x_new + b - p_new)
@@ -107,19 +103,19 @@ if __name__ == "__main__":
         b[equal_cnt:] = bI
     
     #print(A, b)
-    x, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5, show_log = True)
+    x_res, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5, show_log = True)
     
     print(f"Solution:", end = " [")
     for i in range(n):
-        print(f"{round(x[i], 4)}", end = " ")
+        print(f"{round(x_res[i], 4)}", end = " ")
     print("]")
     #print(f"Objective: {0.5 * x.T @ H @ x + g @ x}")
-    print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x)}")
+    print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x_res)}")
     for i in range(m):
         if (i < equal_cnt):
-            print(f"Equality {i}: {A[i] @ x + b[i]}")
+            print(f"Equality {i}: {A[i] @ x_res + b[i]}")
         else:
-            print(f"Inequality {i}: {A[i] @ x + b[i]}")
+            print(f"Inequality {i}: {A[i] @ x_res + b[i]}")
     
     if (ref is not None) and (ref_val is not None):
         ref_x = np.array(ref)
@@ -134,7 +130,7 @@ if __name__ == "__main__":
             else:
                 print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
     
-        diff = np.linalg.norm(x - ref_x)
+        diff = np.linalg.norm(x_res - ref_x)
         print(f"Distance: {diff}")
         if diff < 1e-4:
             print("========== Test Passed ==========")

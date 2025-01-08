@@ -106,7 +106,7 @@ def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optim
                     if res[i] > optimal_check_eps:
                         print(f"Inequality Feasibility Check Failed at {i}th constraint")
                         Ax = A[i] @ x
-                        print(f"Ax = {Ax}, b = {b[i]}")
+                        print(f"Ax + b = {round(Ax, 4)} + {round(b[i], 4)} = {round(Ax + b[i],6)}")
             return False
     elif type == "equ":
         res = A @ x + b
@@ -123,7 +123,17 @@ def check_feasible(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str, optim
                         print(f"Equality Feasibility Check Failed at {i}th constraint")
                         Ax = A[i] @ x
                         print(f"Ax = {Ax}, b = {b[i]}")
+                        
             return False
+
+def eval_penalty(x: np.ndarray, A: np.ndarray, b: np.ndarray, type: str):
+    if type == "inequ":
+        res = A @ x + b
+        res = np.maximum(res, 0)
+    elif type == "equ":
+        res = A @ x + b
+        res = np.abs(res)
+    return np.sum(res)
 
 def is_constraints_nonempty(A, b, C, d):
     """
