@@ -48,12 +48,17 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     AE_iter, AI_iter = A_iter[:eq_cnt], A_iter[eq_cnt:]
     bE_iter, bI_iter = b_iter[:eq_cnt], b_iter[eq_cnt:]
     
-    for subproblem_iter in range(100):
+    for subproblem_iter in range(1000):
         # Solve Subproblem
         if (solver == "ADAL"):
-            x_new, _ = ADAL(H, g, A_iter, b_iter, eq_cnt, ineq_cnt, 0.5, init_x = x)
+            x_new, _ = ADAL(
+                H, g, A_iter, b_iter, eq_cnt, ineq_cnt, 0.5, init_x = x
+            )
         elif (solver == "IRWA"):
-            x_new, _ = IRWA(H, g, AE_iter, bE_iter, AI_iter, bI_iter, 1e4, x_init = x)
+            x_new, _ = IRWA(
+                H, g, AE_iter, bE_iter, AI_iter, bI_iter, 
+                1e3, init_x = x, eta = 0.995, max_iter= 100000
+            )
         else:
             raise ValueError(f"Solver {solver} not supported.")
         
@@ -74,25 +79,25 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         # Update x
         x = x_new
         
-        if (feasible) and (delta_x < 1e-5):
+        if (feasible) and (delta_x < 1e-6):
             print("========== Algorithm Converged ==========")
             return x
         
         all_feasible = True
         if (eq_cnt) and not check_feasible(x_new, AE, bE, "equ", optimal_check_eps=1e-5, printResult=False):
             all_feasible = False
-            penalty_eq_vec = eval_penalty(AE, bE, x_new, "equ")
-            penalty_eq = np.sum(penalty_eq_vec)
-            if (penalty_eq > 10):
-                penalty_eq = 10
+            penalty_eq_vec = eval_penalty(x_new, AE, bE, "equ")
+            penalty_eq = np.max(penalty_eq_vec)
+            if (penalty_eq > n):
+                penalty_eq = n
         else:
             penalty_eq = 0
         if (ineq_cnt) and not check_feasible(x_new, AI, bI, "inequ", optimal_check_eps=1e-5, printResult=False):
             all_feasible = False
-            penalty_ineq_vec = eval_penalty(AI, bI, x_new, "inequ")
-            penalty_ineq = np.sum(penalty_ineq_vec)
-            if (penalty_ineq > 10):
-                penalty_ineq = 10
+            penalty_ineq_vec = eval_penalty(x_new, AI, bI, "inequ")
+            penalty_ineq = np.max(penalty_ineq_vec)
+            if (penalty_ineq > n):
+                penalty_ineq = n
         else:
             penalty_ineq = 0
         # Update A, b: Multiply by M_eq and M_ineq
@@ -110,11 +115,16 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         bI_iter = b_iter[eq_cnt:]
         # Update M_eq and M_ineq
         ## Compute Scaling Factor. 
-        M_eq = M_eq * np.exp(penalty_eq / 5)
-        M_ineq = M_ineq * np.exp(penalty_ineq / 5)
+        ## We want M to be large than n
+        #scale_eq = np.maximum(1, 2 * n / M_eq)
+        #scale_ineq = np.maximum(1, 2 * n / M_ineq)
+        M_eq = M_eq * np.exp(penalty_eq / n) #* scale_eq
+        M_ineq = M_ineq * np.exp(penalty_ineq / n) #* scale_ineq
         print(f"Penalty Eq: {round(penalty_eq, 4)}, Penalty Ineq: {round(penalty_ineq, 4)}")
         print(f"M_eq: {round(M_eq, 4)}, M_ineq: {round(M_ineq, 4)}")
-    
+
+        if (M_eq > 100 * n * n) or (M_ineq > 100 * n * n):
+            raise ValueError("Penalty too large. Stopping.")
     return x
 
 
@@ -137,7 +147,8 @@ if __name__ == "__main__":
     
     print("x: ", end = "")
     printVec(x[:20])
-    print("Objective Value: ", round(1/2 * x.T@H@x + g @ x, 4))
+    our_objctive = 1/2 * x.T @ H @ x + g @ x
+    print("Objective Value: ", round(our_objctive, 4))
         
     if (AI is not None) and (bI is not None):
         print("*", end=" ")
@@ -152,10 +163,10 @@ if __name__ == "__main__":
 
     ans = reference(cfg_file)
     
-    if (np.allclose(x, ans, atol=1e-3 * n)):
-        print("========== ADAL Test Passed! ==========")
+    ref_objective = 1/2 * ans.T @ H @ ans + g @ ans
+    print("LOSS: ", np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n))
+    if (np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n) < 1e-6):
+        print("========== Test Passed! ==========")
     else:
-        print("========== ADAL Test Failed! ==========")
-        print("LOSS: ", np.linalg.norm(x - ans))
-        print("Difference: ", end = "")
-        diff_idx = np.where(np.abs(x - ans) > 1e-3)
+        print("========== Test Failed! ==========")
+        
