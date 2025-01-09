@@ -1,6 +1,7 @@
 import numpy as np
 import os, sys
 import scipy.sparse as sp
+from scipy.optimize import minimize
 
 def eval_exact_penalty(
     H: np.ndarray, g: np.ndarray, 
@@ -41,9 +42,9 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     return w1, w2
 
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
-         eta=0.995, gamma=1/6, M=10000, 
+         eta=0.9, gamma=1/6, M=10000, 
          sigma=1e-4, sigma_prime=1e-8, 
-         max_iter=10000):
+         max_iter=1000):
     """
     Iteratively solve the reweighted QP problem using the IRWA algorithm.
     Parameters
@@ -87,6 +88,8 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     A = np.vstack([AE, AI]) if AE is not None and AI is not None else AE if AE is not None else AI
     b = np.concatenate([bE, bI]) if bE is not None and bI is not None else bE if bE is not None else bI
 
+    l = AE.shape[0]
+    
     eps_k = eps_init if not np.isscalar(eps_init) else np.full(A.shape[0], eps_init)
     for _ in range(max_iter):
         # Step 1: Compute weights and solve the reweighted subproblem
@@ -107,10 +110,10 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
             v = np.maximum(-AI @ x, bI)
 
         # Solve the linear system: (H + A^T W A) x + (g + A^T W v) = 0
-        lhs = H + A.T @ W @ A
-        rhs = -(g + v.T @ W @ A)
+
         # x_next = conjugate_gradient(lhs, rhs, x0=x_k)
-        x_next = np.linalg.solve(lhs, rhs)
+        x_next  = minimize(lambda x: 0.5 * x.T @ (H + A.T @ W @ A) @ x + (g.T + v.T @ W @ A) @ x, x, method='CG').x
+        # x_next = np.linalg.solve(lhs, rhs)
         
         # Step 2: Update eps
         q_k = A @ (x_next - x)
@@ -121,13 +124,24 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         rhs_condition = M * ((r_k**2 + eps_k**2)**(0.5 + gamma))  
         
         if np.all(lhs_condition <= rhs_condition):
-            eps_next = eta * eps_k
+            eps_next = np.zeros_like(eps_k)
+            for i in range(l):
+                eps_next[i] = eta * eps_k[i]
+            for i in range(l, len(eps_k)):
+                if A[i] @ x_next + b[i] < - eps_k[i]:
+                    eps_next[i] = eps_k[i]
+                else:
+                    eps_next[i] = eta * eps_k[i]
+              
+                
+            
         else:
             eps_next = eps_k
         
         # Step 3: Check stopping criteria
         diff_x = np.linalg.norm(x_next - x, 2)
-        diff_eps = np.linalg.norm(eps_k, 2)
+        diff_eps = np.linalg.norm(eps_next - eps_k, 2)
+    
         
         if diff_x <= sigma and diff_eps <= sigma_prime:
             break
@@ -173,11 +187,11 @@ if __name__ == "__main__":
     print("]")
     #print(f"Objective: {0.5 * x.T @ H @ x + g @ x}")
     print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x)}")
-    for i in range(m):
-        if (i < equal_cnt):
-            print(f"Equality {i}: {A[i] @ x + b[i]}")
-        else:
-            print(f"Inequality {i}: {A[i] @ x + b[i]}")
+    # for i in range(m):
+    #     if (i < equal_cnt):
+    #         print(f"Equality {i}: {A[i] @ x + b[i]}")
+    #     else:
+    #         print(f"Inequality {i}: {A[i] @ x + b[i]}")
     
     if (ref is not None) and (ref_val is not None):
         ref_x = np.array(ref)
@@ -186,11 +200,11 @@ if __name__ == "__main__":
         #print(f"Reference Objective: {ref_obj}")
         print(f"Reference Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, ref_x)}")
         print(f"Reference Objective: {ref_val}")
-        for i in range(m):
-            if (i < equal_cnt):
-                print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
-            else:
-                print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
+        # for i in range(m):
+        #     if (i < equal_cnt):
+        #         print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
+        #     else:
+        #         print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
     
         diff = np.linalg.norm(x - ref_x) / n
         print(f"Distance: {diff}")

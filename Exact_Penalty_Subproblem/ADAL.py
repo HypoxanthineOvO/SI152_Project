@@ -82,7 +82,7 @@ def ADAL(
 
 if __name__ == "__main__":
     from Transform_Test_To_Lingo import init_from_config
-    FILE = "./Tests/00-Easy.txt"
+    FILE = "./Exact_Penalty_Test/00-Easy.txt"
     if (len(sys.argv) > 1):
         FILE = sys.argv[1]
     
