@@ -16,7 +16,7 @@ def eval_exact_penalty(
 def ADAL(
     H: np.ndarray, g: np.ndarray,
     A: np.ndarray, b: np.ndarray, eq_cnt: int, ineq_cnt: int,
-    mu: float, sigma: float = 1e-5, sigmapp: float = 1e-5,
+    mu: float, sigma: float = 1e-6, sigmapp: float = 1e-5,
     init_x: np.ndarray = None,
     show_log: bool = False
 ):
@@ -88,7 +88,8 @@ if __name__ == "__main__":
     
     n, m, H, g, AI, bI, AE, bE, ref, ref_val = init_from_config(FILE)
     
-    
+    # Check H is positive definite
+    assert np.all(np.linalg.eigvals(H) > 0), "H is not positive definite"
     equal_cnt = AE.shape[0] if AE is not None else 0
     inequal_cnt = AI.shape[0] if AI is not None else 0
     
@@ -103,7 +104,10 @@ if __name__ == "__main__":
         b[equal_cnt:] = bI
     
     #print(A, b)
-    x_res, log = ADAL(H, g, A, b, equal_cnt, inequal_cnt, 0.5, show_log = True)
+    x_res, log = ADAL(
+        H, g, A, b, equal_cnt, inequal_cnt, 
+        mu = 0.5, sigma = 1e-5, sigmapp = 1e-5, 
+        show_log = True)
     
     print(f"Solution:", end = " [")
     for i in range(n):
@@ -111,29 +115,37 @@ if __name__ == "__main__":
     print("]")
     #print(f"Objective: {0.5 * x.T @ H @ x + g @ x}")
     print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x_res)}")
-    for i in range(m):
-        if (i < equal_cnt):
-            print(f"Equality {i}: {A[i] @ x_res + b[i]}")
-        else:
-            print(f"Inequality {i}: {A[i] @ x_res + b[i]}")
+    if m < 10:
+        for i in range(m):
+            if (i < equal_cnt):
+                print(f"Equality {i}: {A[i] @ x_res + b[i]}")
+            else:
+                print(f"Inequality {i}: {A[i] @ x_res + b[i]}")
     
     if (ref is not None) and (ref_val is not None):
         ref_x = np.array(ref)
         ref_val = ref_val
-        print(f"Reference: {ref_x}")
+        print(f"Reference:", end = " [")
+        for i in range(n):
+            print(f"{round(ref_x[i], 4)}", end = " ")
+        print("]")
         #print(f"Reference Objective: {ref_obj}")
         print(f"Reference Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, ref_x)}")
         print(f"Reference Objective: {ref_val}")
-        for i in range(m):
-            if (i < equal_cnt):
-                print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
-            else:
-                print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
+        if m < 10:
+            for i in range(m):
+                if (i < equal_cnt):
+                    print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
+                else:
+                    print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
     
         diff = np.linalg.norm(x_res - ref_x)
         print(f"Distance: {diff}")
         if diff < 1e-4:
             print("========== Test Passed ==========")
+        else:
+            print("========== Test Failed ==========")
+            
     # Log
     with open("ADAL.log", "w") as f:
         f.write(f"Init: {log[0]}\n")

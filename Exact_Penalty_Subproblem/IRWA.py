@@ -26,16 +26,16 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     For i ∈ I2:
     w_i = (( max(a_i^T x_tilde + b_i, 0)^2 + eps_i^2 ))^{-1/2}
     """
-    m1 = 0
-    w1 = w2 = None
+    equ_cnt = AE.shape[0] if AE is not None else 0
+    w1 = None
+    w2 = None
     if AE is not None and bE is not None:
         r1 = AE @ x_tilde + bE
-        m1 = AE.shape[0]
-        eps_1 = eps[:m1]
+        eps_1 = eps[:equ_cnt]
         w1 = 1.0 / np.sqrt(r1**2 + eps_1**2)
     if AI is not None and bI is not None:
         r2 = AI @ x_tilde + bI
-        eps_2 = eps[m1:]
+        eps_2 = eps[equ_cnt:]
         hinge_r2 = np.maximum(r2, 0)
         w2 = 1.0 / np.sqrt(hinge_r2**2 + eps_2**2)
     
@@ -94,23 +94,21 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     for _ in range(max_iter):
         # Step 1: Compute weights and solve the reweighted subproblem
         w1, w2 = compute_weights(x, AE, bE, AI, bI, eps_k)
-        # w = np.concatenate([w1, w2]) 
-        # W = np.diag(w)
-        # v_I1 = bE
-        # v_I2 = np.maximum(-AI @ x_k, bI) 
-        # v = np.concatenate([v_I1, v_I2]) 
+        
         if w1 is not None and w2 is not None:
-            W = sp.diags(np.concatenate([w1, w2]), format="csc")
+            #W = sp.diags(np.concatenate([w1, w2]), format="csc")
+            W = np.diag(np.concatenate([w1, w2]))
             v = np.concatenate([bE, np.maximum(-AI @ x, bI)])
         elif w1 is not None:
-            W = sp.diags(w1, format="csc")
+            #W = sp.diags(w1, format="csc")
+            W = np.diag(w1)
             v = bE
         else:
-            W = sp.diags(w2, format="csc")
+            #W = sp.diags(w2, format="csc")
+            W = np.diag(w2)
             v = np.maximum(-AI @ x, bI)
 
         # Solve the linear system: (H + A^T W A) x + (g + A^T W v) = 0
-
         # x_next = conjugate_gradient(lhs, rhs, x0=x_k)
         x_next  = minimize(lambda x: 0.5 * x.T @ (H + A.T @ W @ A) @ x + (g.T + v.T @ W @ A) @ x, x, method='CG').x
         # x_next = np.linalg.solve(lhs, rhs)
@@ -121,8 +119,8 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         
         # Check condition for eps updating
         lhs_condition = np.abs(q_k)
-        rhs_condition = M * ((r_k**2 + eps_k**2)**(0.5 + gamma))  
-        
+        rhs_condition = M * ((r_k**2 + eps_k**2)**(0.5 + gamma)) 
+
         if np.all(lhs_condition <= rhs_condition):
             eps_next = np.zeros_like(eps_k)
             for i in range(l):
@@ -143,7 +141,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         diff_eps = np.linalg.norm(eps_next - eps_k, 2)
     
         
-        if diff_x <= sigma and diff_eps <= sigma_prime:
+        if (diff_x <= sigma) and (diff_eps <= sigma_prime):
             break
         
         x = x_next
@@ -177,39 +175,55 @@ if __name__ == "__main__":
     
     
     init_x = np.zeros(n)
-    eps = 1e4
-    x, log = IRWA(H, g, AE, bE, AI, bI, eps, init_x)
+    eps = np.ones(m) * 2e3
+    x, log = IRWA(
+        H, g, AE, bE, AI, bI, eps, init_x,
+        eta = 0.997, gamma = 1/6, M = 1e4, sigma = 1e-4, sigma_prime = 1e-4, max_iter = 100000,
+    )
     #print(log)
     
-    print(f"Solution:", end = " [")
+    print(f"Solution:", end = "\t[")
     for i in range(n):
         print(f"{round(x[i], 4)}", end = " ")
     print("]")
-    #print(f"Objective: {0.5 * x.T @ H @ x + g @ x}")
     print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x)}")
-    for i in range(m):
-        if (i < equal_cnt):
-            print(f"Equality {i}: {A[i] @ x + b[i]}")
-        else:
-            print(f"Inequality {i}: {A[i] @ x + b[i]}")
     
+    if m < 10:
+        for i in range(m):
+            if (i < equal_cnt):
+                print(f"Equality {i}: {A[i] @ x + b[i]}")
+            else:
+                print(f"Inequality {i}: {A[i] @ x + b[i]}")
+        
     if (ref is not None) and (ref_val is not None):
         ref_x = np.array(ref)
         ref_val = ref_val
-        print(f"Reference: {ref_x}")
+        print(f"Reference:", end = "\t[")
+        for i in range(n):
+            print(f"{round(ref_x[i], 4)}", end = " ")
+        print("]")
         #print(f"Reference Objective: {ref_obj}")
         print(f"Reference Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, ref_x)}")
         print(f"Reference Objective: {ref_val}")
-        for i in range(m):
-            if (i < equal_cnt):
-                print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
-            else:
-                print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
+        
+        if m < 10:
+            for i in range(m):
+                if (i < equal_cnt):
+                    print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
+                else:
+                    print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
     
         diff = np.linalg.norm(x - ref_x) / n
         print(f"Distance: {diff}")
         if diff < 1e-3:
             print("========== Test Passed ==========")
+        else:
+            print("========== Test Failed ==========")
+            diff_vec = np.abs(x - ref_x)
+            # Get the 10 largest difference and its index
+            diff_idx = np.argsort(diff_vec)[-1:-10:-1]
+            print("Largest Difference Index: ", diff_idx)
+            print("Largest Difference: ", diff_vec[diff_idx])
     # Log
     with open("IRWA.log", "w") as f:
         f.write(f"Init: {log[0]}\n")
