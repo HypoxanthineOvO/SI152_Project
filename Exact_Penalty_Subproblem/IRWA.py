@@ -187,11 +187,11 @@ if __name__ == "__main__":
     print("]")
     #print(f"Objective: {0.5 * x.T @ H @ x + g @ x}")
     print(f"Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, x)}")
-    # for i in range(m):
-    #     if (i < equal_cnt):
-    #         print(f"Equality {i}: {A[i] @ x + b[i]}")
-    #     else:
-    #         print(f"Inequality {i}: {A[i] @ x + b[i]}")
+    for i in range(m):
+        if (i < equal_cnt):
+            print(f"Equality {i}: {A[i] @ x + b[i]}")
+        else:
+            print(f"Inequality {i}: {A[i] @ x + b[i]}")
     
     if (ref is not None) and (ref_val is not None):
         ref_x = np.array(ref)
@@ -200,11 +200,11 @@ if __name__ == "__main__":
         #print(f"Reference Objective: {ref_obj}")
         print(f"Reference Objective: {eval_exact_penalty(H, g, A, b, equal_cnt, inequal_cnt, ref_x)}")
         print(f"Reference Objective: {ref_val}")
-        # for i in range(m):
-        #     if (i < equal_cnt):
-        #         print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
-        #     else:
-        #         print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
+        for i in range(m):
+            if (i < equal_cnt):
+                print(f"Equality {i}: {A[i] @ ref_x + b[i]}")
+            else:
+                print(f"Inequality {i}: {A[i] @ ref_x + b[i]}")
     
         diff = np.linalg.norm(x - ref_x) / n
         print(f"Distance: {diff}")
