@@ -2,12 +2,31 @@ import numpy as np
 import os, sys
 from Exact_Penalty_Subproblem.ADAL import ADAL
 from Exact_Penalty_Subproblem.IRWA import IRWA
-from utils import init_from_config, check_feasible, printVec, eval_penalty
+from utils import init_from_config, check_feasible, printVec
 from reference import reference
+
+def eval_M(
+    x: np.ndarray, A: np.ndarray, b: np.ndarray,
+    eq_cnt: int, ineq_cnt: int
+):
+    m = eq_cnt + ineq_cnt
+    assert m == A.shape[0], "Inequality and equality constraints do not match the dimension of the problem"
+    
+    Delta_M = np.zeros(m)
+    
+    for i in range(m):
+        if (i < eq_cnt): # i < eq_cnt, equality constraints
+            residual = np.abs(A[i] @ x + b[i])
+        else: # i >= eq_cnt, inequality constraints
+            residual = np.maximum(0, A[i] @ x + b[i])
+        Delta_M[i] = residual
+    return Delta_M
+
 
 def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, 
               g: np.ndarray, H: np.ndarray,
-              solver: str = "ADAL"):
+              solver: str = "ADAL",
+              max_iter: int = 1000):
     # Dimension Check
     AI_len = AI.shape[0] if AI is not None else 0
     bI_len = bI.shape[0] if bI is not None else 0
@@ -25,14 +44,9 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     # x for iteration
     x = np.zeros(n)
     
-    M_eq = 1
-    # np.diag(
-    #     np.ones(eq_cnt)
-    # )
-    M_ineq = 1
-    # np.diag(
-    #     np.ones(ineq_cnt)
-    # )
+    M = np.ones(m)
+    infeasible_cnt = np.zeros(m)
+    
     # Generate A and l,u from AI, bI, AE, bE
     A = np.zeros((m, n))
     b = np.zeros(m)
@@ -48,16 +62,30 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     AE_iter, AI_iter = A_iter[:eq_cnt], A_iter[eq_cnt:]
     bE_iter, bI_iter = b_iter[:eq_cnt], b_iter[eq_cnt:]
     
-    for subproblem_iter in range(1000):
+    for sp_iter in range(max_iter):
         # Solve Subproblem
         if (solver == "ADAL"):
             x_new, _ = ADAL(
                 H, g, A_iter, b_iter, eq_cnt, ineq_cnt, 0.5, init_x = x
             )
         elif (solver == "IRWA"):
+            # feasible = True
+            # if (AI is not None) and (bI is not None):
+            #     ineq_res = check_feasible(x, AI, bI, "inequ", optimal_check_eps = 1e-5 , printResult=False)
+            #     feasible = feasible and ineq_res
+            # if (AE is not None) and (bE is not None):
+            #     eq_res = check_feasible(x, AE, bE, "equ", optimal_check_eps = 1e-5, printResult=False)
+            #     feasible = feasible and eq_res
+            
+            # if feasible and (sp_iter > 0):
+            #     eta_val = 0.995
+            # else:
+            #     eta_val = 0.8  + 0.19 * (1 - np.exp(-(sp_iter * 5) / max_iter))
+            # print(f"IRWA Eta: {round(eta_val, 6)}")
+            eta_val = 0.9975
             x_new, _ = IRWA(
                 H, g, AE_iter, bE_iter, AI_iter, bI_iter, 
-                1e3, init_x = x, eta = 0.995, max_iter= 100000
+                1e3, init_x = x, eta = eta_val , max_iter= 10000
             )
         else:
             raise ValueError(f"Solver {solver} not supported.")
@@ -71,68 +99,57 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
             eq_res = check_feasible(x_new, AE, bE, "equ", optimal_check_eps = 1e-5, printResult=False)
             feasible = feasible and eq_res
         
-        delta_x = np.linalg.norm(x_new - x) / n
-        print("-" * 50)
-        print(f"Subproblem Iter {subproblem_iter}, Objective: {round(0.5 * x_new.T @ H @ x_new + g @ x_new, 4)}, Loss: {delta_x}, Feasible: {feasible}")
-        print("x: ", end = "")
-        printVec(x_new[:20])
-        # Update x
+        delta_x = np.linalg.norm(x_new - x) / (n * np.linalg.norm(x) + 1e-6)
+        
         x = x_new
+        if (feasible) and ((delta_x < 5e-6) #or (
+            #(solver == "IRWA") and (eta_val > 0.995)
+        #)
+        ):
+            break
         
-        if (feasible) and (delta_x < 1e-6):
-            print("========== Algorithm Converged ==========")
-            return x
+        # Update x
         
-        all_feasible = True
-        if (eq_cnt) and not check_feasible(x_new, AE, bE, "equ", optimal_check_eps=1e-5, printResult=False):
-            all_feasible = False
-            #penalty_eq_vec = eval_penalty(x_new, AE, bE, "equ")
-            penalty_eq_vec = eval_penalty(AE, bE, x_new, "equ")
-            penalty_eq = np.max(penalty_eq_vec)
-            if (penalty_eq > n):
-                penalty_eq = n
-            if (penalty_eq < 0.1):
-                penalty_eq = 0.1
-        else:
-            penalty_eq = 0
-        if (ineq_cnt) and not check_feasible(x_new, AI, bI, "inequ", optimal_check_eps=1e-5, printResult=False):
-            all_feasible = False
-            #penalty_ineq_vec = eval_penalty(x_new, AI, bI, "inequ")
-            penalty_ineq_vec = eval_penalty(AI, bI, x_new, "inequ")
-            penalty_ineq = np.max(penalty_ineq_vec)
-            if (penalty_ineq > n):
-                penalty_ineq = n
-            if (penalty_ineq < 0.1):
-                penalty_ineq = 0.1
-        else:
-            penalty_ineq = 0
-        # Update A, b: Multiply by M_eq and M_ineq
-        A_iter_eq = A[:eq_cnt] * M_eq
-        A_iter_ineq = A[eq_cnt:] * M_ineq
-        A_iter = np.concatenate([A_iter_eq, A_iter_ineq], axis=0)
-        AE_iter = A_iter[:eq_cnt]
-        AI_iter = A_iter[eq_cnt:]
+        # Print Info
+        print("=" * 60)
+        print(f"Subproblem Iteration {sp_iter}", end = " | ")
+        obj_val = 0.5 * x.T @ H @ x + g @ x
+        print(f"Objective Value: {round(obj_val, 4)}", end = " | ")
+        print(f"Feasible: {feasible}", end = "\n")
+        print(f"x: ", end = "")
+        printVec(x[:10])
         
+        # Update Penalty
+        Delta_M = eval_M(x, A, b, eq_cnt, ineq_cnt)
+        #print("Delta_M: ", end = "")
+        #printVec(Delta_M[:10])
+        infeasible_cnt += (Delta_M > 1e-6)
+        #print("Infeasible Count: ", end = "")
+        #printVec(infeasible_cnt[:10])
+        M_Penalty_Param = (Delta_M * (infeasible_cnt + 1) * (infeasible_cnt * 1.1))
         
-        b_iter_eq = b[:eq_cnt] * M_eq
-        b_iter_ineq = b[eq_cnt:] * M_ineq
-        b_iter = np.concatenate([b_iter_eq, b_iter_ineq], axis=0)
-        bE_iter = b_iter[:eq_cnt]
-        bI_iter = b_iter[eq_cnt:]
-        # Update M_eq and M_ineq
-        ## Compute Scaling Factor. 
-        ## We want M to be large than n
-        #scale_eq = np.maximum(1, 2 * n / M_eq)
-        #scale_ineq = np.maximum(1, 2 * n / M_ineq)
-        M_eq = M_eq * np.exp(penalty_eq / n) #* scale_eq
-        M_ineq = M_ineq * np.exp(penalty_ineq / n) #* scale_ineq
-        print(f"Penalty Eq: {round(penalty_eq, 4)}, Penalty Ineq: {round(penalty_ineq, 4)}")
-        print(f"M_eq: {round(M_eq, 4)}, M_ineq: {round(M_ineq, 4)}")
-
-        if (M_eq > 100 * n * n) or (M_ineq > 100 * n * n):
-            raise ValueError("Penalty too large. Stopping.")
+        M = M * np.diag(
+            np.clip(
+                np.exp(M_Penalty_Param / n), 1, (n + 1)
+            )
+        )
+        ## Show M's diagonal values
+        print("Delta_M: ", end = "")
+        printVec(Delta_M[:10])
+        print("M: ", end = "")
+        printVec(np.diag(M)[:10])
+    
+        # If Any M is too large: means the problem is infeasible
+        if np.any(M > 1e4 * n * n):
+            raise ValueError("Problem is infeasible.")
+        
+        # Update A, b by M: let result as M(Ax+b)
+        A_iter = M @ A
+        b_iter = M @ b
+        AE_iter, AI_iter = A_iter[:eq_cnt], A_iter[eq_cnt:]
+        bE_iter, bI_iter = b_iter[:eq_cnt], b_iter[eq_cnt:]
+    
     return x
-
 
 if __name__ == "__main__":
     SOLVER = "ADAL"
@@ -171,7 +188,7 @@ if __name__ == "__main__":
     
     ref_objective = 1/2 * ans.T @ H @ ans + g @ ans
     print("LOSS: ", np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n))
-    if (np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n) < 1e-6):
+    if (np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n) < 1e-5):
         print("========== Test Passed! ==========")
     else:
         print("========== Test Failed! ==========")

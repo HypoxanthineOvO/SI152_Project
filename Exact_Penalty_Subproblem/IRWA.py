@@ -2,6 +2,9 @@ import numpy as np
 import os, sys
 import scipy.sparse as sp
 from scipy.optimize import minimize
+from cvxopt import matrix, solvers
+from tqdm import trange
+import time
 
 def eval_exact_penalty(
     H: np.ndarray, g: np.ndarray, 
@@ -91,7 +94,10 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, init_x,
     l = AE.shape[0]
     
     eps_k = eps_init if not np.isscalar(eps_init) else np.full(A.shape[0], eps_init)
+    
+    T1, T2, T3 = 0, 0, 0
     for _ in range(max_iter):
+        time_start = time.time()
         # Step 1: Compute weights and solve the reweighted subproblem
         w1, w2 = compute_weights(x, AE, bE, AI, bI, eps_k)
         
@@ -110,9 +116,16 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, init_x,
 
         # Solve the linear system: (H + A^T W A) x + (g + A^T W v) = 0
         # x_next = conjugate_gradient(lhs, rhs, x0=x_k)
-        x_next  = minimize(lambda x: 0.5 * x.T @ (H + A.T @ W @ A) @ x + (g.T + v.T @ W @ A) @ x, x, method='CG').x
+        #x_next  = minimize(
+        #    lambda x: 0.5 * x.T @ (H + A.T @ W @ A) @ x + (g.T + v.T @ W @ A) @ x, x, 
+        #    method='Powell'
+        #).x
+        # P = matrix(H + A.T @ W @ A)
+        # q = matrix(g + A.T @ W @ v)
+        # x_next = np.array(solvers.qp(P, q)['x']).flatten()
+        x_next = np.linalg.solve(H + A.T @ W @ A, -g - A.T @ W @ v)
         # x_next = np.linalg.solve(lhs, rhs)
-        
+        time_step1 = time.time() - time_start
         # Step 2: Update eps
         q_k = A @ (x_next - x)
         r_k = (1.0 - v) * (A @ x + b)
@@ -136,19 +149,25 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, init_x,
         else:
             eps_next = eps_k
         
+        time_step2 = time.time() - time_start - time_step1
         # Step 3: Check stopping criteria
         diff_x = np.linalg.norm(x_next - x, 2)
         diff_eps = np.linalg.norm(eps_next - eps_k, 2)
     
-        
+        time_step3 = time.time() - time_start - time_step1 - time_step2
         if (diff_x <= sigma) and (diff_eps <= sigma_prime):
             break
         
         x = x_next
         eps_k = eps_next
         
+        T1 += time_step1
+        T2 += time_step2
+        T3 += time_step3
+        
         x_logs.append(x)
     
+    print(f"Time: Step 1: {T1:.4f}, Step 2: {T2:.4f}, Step 3: {T3:.4f}")
     return x, x_logs
 
 if __name__ == "__main__":
@@ -178,7 +197,7 @@ if __name__ == "__main__":
     eps = np.ones(m) * 2e3
     x, log = IRWA(
         H, g, AE, bE, AI, bI, eps, init_x,
-        eta = 0.6, gamma = 1/6, M = 1e4, sigma = 1e-4, sigma_prime = 1e-4, max_iter = 10000,
+        eta = 0.995, gamma = 1/6, M = 1e4, sigma = 1e-4, sigma_prime = 1e-4, max_iter = 10000,
     )
     #print(log)
     
