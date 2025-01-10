@@ -42,9 +42,9 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     return w1, w2
 
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
-         eta=0.95, gamma=1/6, M=10000, 
-         sigma=1e-4, sigma_prime=1e-8, 
-         max_iter=1000):
+         eta=0.9, gamma=1/6, M=10000, 
+         sigma=1e-6, sigma_prime=1e-8, 
+         max_iter=5000):
     """
     Iteratively solve the reweighted QP problem using the IRWA algorithm.
     Parameters
@@ -81,14 +81,14 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     x : ndarray (n,)
         The solution after iterations.
     """
-    x = init_x.copy()
+    x = x_init.copy()
     
     x_logs = [x]
 
     A = np.vstack([AE, AI]) if AE is not None and AI is not None else AE if AE is not None else AI
     b = np.concatenate([bE, bI]) if bE is not None and bI is not None else bE if bE is not None else bI
 
-    l = AE.shape[0]
+    l = AE.shape[0] if AE is not None else 0
     
     eps_k = eps_init if not np.isscalar(eps_init) else np.full(A.shape[0], eps_init)
     for _ in range(max_iter):
@@ -110,7 +110,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
 
         # Solve the linear system: (H + A^T W A) x + (g + A^T W v) = 0
         # x_next = conjugate_gradient(lhs, rhs, x0=x_k)
-        x_next  = minimize(lambda x: 0.5 * x.T @ (H + A.T @ W @ A) @ x + (g.T + v.T @ W @ A) @ x, x, method='CG').x
+        x_next  = minimize(lambda x: 0.5 * x.T @ (H + A.T @ W @ A) @ x + (g.T + v.T @ W @ A) @ x, x, method='powell').x
         # x_next = np.linalg.solve(lhs, rhs)
         
         # Step 2: Update eps

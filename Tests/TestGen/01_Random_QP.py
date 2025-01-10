@@ -3,7 +3,7 @@ import os, sys
 
 # Constants
 alpha = 1e-2
-nonzero_ratio = 0.8
+nonzero_ratio = 0.3
 FILE = "../01_RANDOM_QP.txt"
 
 # Variables

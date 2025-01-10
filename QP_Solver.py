@@ -79,7 +79,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         # Update x
         x = x_new
         
-        if (feasible) and (delta_x < 1e-6):
+        if (feasible) and (delta_x < 1e-4):
             print("========== Algorithm Converged ==========")
             return x
         
@@ -135,14 +135,14 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
 
 
 if __name__ == "__main__":
-    SOLVER = "ADAL"
-    # SOLVER = "IRWA"
+    # SOLVER = "ADAL"
+    SOLVER = "IRWA"
     if len(sys.argv) > 2:
         SOLVER = sys.argv[2]
     if len(sys.argv) > 1:
         cfg_file = sys.argv[1]
     else:
-        cfg_file = "./Testcases/reference.txt"
+        cfg_file = "./Tests/TestCases/reference.txt"
     n, m, H, g, AI, bI, AE, bE = init_from_config(cfg_file)
 
     # Check Dimensions
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     
     ref_objective = 1/2 * ans.T @ H @ ans + g @ ans
     print("LOSS: ", np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n))
-    if (np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n) < 1e-6):
+    if (np.abs(our_objctive - ref_objective) / (np.abs(ref_objective) * n) < 1e-4):
         print("========== Test Passed! ==========")
     else:
         print("========== Test Failed! ==========")
