@@ -164,3 +164,4 @@ cython_debug/
 # LOGS
 ADAL_LOG
 IRWA_Deprecated.py
+TestCase
