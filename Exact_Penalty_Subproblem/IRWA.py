@@ -81,7 +81,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     x : ndarray (n,)
         The solution after iterations.
     """
-    x = x_init.copy()
+    x = init_x.copy()
     
     x_logs = [x]
 

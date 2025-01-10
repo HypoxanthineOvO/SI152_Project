@@ -71,7 +71,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
             eq_res = check_feasible(x_new, AE, bE, "equ", optimal_check_eps = 1e-5, printResult=False)
             feasible = feasible and eq_res
         
-        delta_x = np.linalg.norm(x_new - x)
+        delta_x = np.linalg.norm(x_new - x) / n
         print("-" * 50)
         print(f"Subproblem Iter {subproblem_iter}, Objective: {round(0.5 * x_new.T @ H @ x_new + g @ x_new, 4)}, Loss: {delta_x}, Feasible: {feasible}")
         print("x: ", end = "")
@@ -86,18 +86,24 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         all_feasible = True
         if (eq_cnt) and not check_feasible(x_new, AE, bE, "equ", optimal_check_eps=1e-5, printResult=False):
             all_feasible = False
-            penalty_eq_vec = eval_penalty(x_new, AE, bE, "equ")
+            #penalty_eq_vec = eval_penalty(x_new, AE, bE, "equ")
+            penalty_eq_vec = eval_penalty(AE, bE, x_new, "equ")
             penalty_eq = np.max(penalty_eq_vec)
             if (penalty_eq > n):
                 penalty_eq = n
+            if (penalty_eq < 0.1):
+                penalty_eq = 0.1
         else:
             penalty_eq = 0
         if (ineq_cnt) and not check_feasible(x_new, AI, bI, "inequ", optimal_check_eps=1e-5, printResult=False):
             all_feasible = False
-            penalty_ineq_vec = eval_penalty(x_new, AI, bI, "inequ")
+            #penalty_ineq_vec = eval_penalty(x_new, AI, bI, "inequ")
+            penalty_ineq_vec = eval_penalty(AI, bI, x_new, "inequ")
             penalty_ineq = np.max(penalty_ineq_vec)
             if (penalty_ineq > n):
                 penalty_ineq = n
+            if (penalty_ineq < 0.1):
+                penalty_ineq = 0.1
         else:
             penalty_ineq = 0
         # Update A, b: Multiply by M_eq and M_ineq
