@@ -1,5 +1,6 @@
 import numpy as np
 import os, sys
+from scipy.optimize import minimize
 
 def eval_exact_penalty(
     H: np.ndarray, g: np.ndarray, 
@@ -58,6 +59,9 @@ def ADAL(
         left_Matrix = H + 1 / mu * A.T @ A
         right_Vector = g + 1 / mu * A.T @ (b - p_new + mu * u)
         x_new = np.linalg.solve(left_Matrix, -right_Vector)
+        #x_new  = minimize(
+        #    lambda x: 0.5 * x.T @ (H + 1 / mu * A.T @ A) @ x + (g + 1 / mu * A.T @ (b - p_new + mu * u)) @ x, x, 
+        #method='CG').x
         
         # Step 2: Optimize u
         u_new = u + 1 / mu * (A @ x_new + b - p_new)
@@ -106,7 +110,7 @@ if __name__ == "__main__":
     #print(A, b)
     x_res, log = ADAL(
         H, g, A, b, equal_cnt, inequal_cnt, 
-        mu = 0.5, sigma = 1e-5, sigmapp = 1e-5, 
+        mu = 1, sigma = 1e-5, sigmapp = 1e-5, 
         show_log = True)
     
     print(f"Solution:", end = " [")
