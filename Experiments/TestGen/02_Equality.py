@@ -34,9 +34,9 @@ if __name__ == "__main__":
     if num_nonzero_NN < 1:
         num_nonzero_NN = 1
     M[np.random.randint(0, n, num_nonzero_NN), np.random.randint(0, n, num_nonzero_NN)] = np.random.randn(num_nonzero_NN)
-    print(f"M: {M}")
+    # print(f"M: {M}")
     P = M @ M.T + alpha * I_n
-    print(f"P: {P}")
+    # print(f"P: {P}")
     ## q: Random vector
     q = np.random.randn(n)
     
@@ -67,12 +67,12 @@ if __name__ == "__main__":
     
     
     # This QP can be explicitly solved
-    left_mat = np.zeros((n+m, n+m))
-    left_mat[:n, :n] = P
-    left_mat[n:, :n] = A
-    left_mat[:n, n:] = A.T
-    right_vec = np.zeros(n+m)
-    right_vec[:n] = q
-    right_vec[n:] = b
-    x_ref = np.linalg.solve(left_mat, right_vec)[:n]
-    print(f"x_ref: {-x_ref}")
+    # left_mat = np.zeros((n+m, n+m))
+    # left_mat[:n, :n] = P
+    # left_mat[n:, :n] = A
+    # left_mat[:n, n:] = A.T
+    # right_vec = np.zeros(n+m)
+    # right_vec[:n] = q
+    # right_vec[n:] = b
+    # x_ref = np.linalg.solve(left_mat, right_vec)[:n]
+    # print(f"x_ref: {-x_ref}")

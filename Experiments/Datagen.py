@@ -1,6 +1,5 @@
 import os, sys
 
-
 """
 Type of Data generated:
 
@@ -11,11 +10,10 @@ python Datagen.py 3 -> TinyIRWA
 """
 
 n_seq = [5, 10, 50, 100, 200]
-random_seed = 42
+random_seed = [10, 42, 80]
 
 DATA_TYPE = ['InequalityQP', 'EqualityQP', 'MixedQP', 'TinyIRWA']
 DATA_DIR = "Dataset"
-
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -29,19 +27,20 @@ if __name__ == "__main__":
     
     if DATA_TYPE[int(sys.argv[1])] == 'InequalityQP':
         for n in n_seq:
-            command = f"python {os.path.join('TestGen', '01_Inequality.py')} {n} {random_seed} {os.path.join(FILE, f'{n}.txt')}"
-            os.system(command)
+            for i in range(1, 4):  
+                command = f"python {os.path.join('TestGen', '01_Inequality.py')} {n} {random_seed[i-1]} {os.path.join(FILE, f'{n}_{i}.txt')}"
+                os.system(command)
     elif DATA_TYPE[int(sys.argv[1])] == 'EqualityQP':
         for n in n_seq:
-            command = f"python {os.path.join('TestGen', '02_Equality.py')} {n} {random_seed} {os.path.join(FILE, f'{n}.txt')}"
-            os.system(command)
+            for i in range(1, 4):  
+                command = f"python {os.path.join('TestGen', '02_Equality.py')} {n} {random_seed[i-1]} {os.path.join(FILE, f'{n}_{i}.txt')}"
+                os.system(command)
     elif DATA_TYPE[int(sys.argv[1])] == 'MixedQP':
         for n in n_seq:
-            command = f"python {os.path.join('TestGen', '03_Mixed.py')} {n} {random_seed} {os.path.join(FILE, f'{n}.txt')}"
-            os.system(command)
+            for i in range(1, 4): 
+                command = f"python {os.path.join('TestGen', '03_Mixed.py')} {n} {random_seed[i-1]} {os.path.join(FILE, f'{n}_{i}.txt')}"
+                os.system(command)
     elif DATA_TYPE[int(sys.argv[1])] == 'TinyIRWA':
-        command = f"python {os.path.join('TestGen', '04_TinyIRWA.py')} --file {os.path.join(FILE, f'{300}.txt')} --seed {random_seed} --n {300} --m {300}"
-        os.system(command)
-    
-
-        
+        for i in range(1, 4):  
+            command = f"python {os.path.join('TestGen', '04_TinyIRWA.py')} --file {os.path.join(FILE, f'{300}_{i}.txt')} --seed {random_seed[i-1]} --n {300} --m {300}"
+            os.system(command)

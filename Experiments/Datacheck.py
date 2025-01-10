@@ -4,17 +4,28 @@ import os, sys
 sys.path.append('..')
 from reference import reference
 
-n_seq = [5, 10, 50, 100, 500]
+n_seq = [5, 10, 50, 100, 200]
 
-REFER = os.path.join('..', 'reference.py')
 DATA_TYPE = ['InequalityQP', 'EqualityQP', 'MixedQP', 'TinyIRWA']
 
 for data in DATA_TYPE:
+    SOL_DIR = os.path.join('Dataset', data, 'Reference.txt')
+    if os.path.exists(SOL_DIR):
+        os.remove(SOL_DIR)
+    
+    
     if data != 'TinyIRWA':
         for n in n_seq:
-            print(f"\n\nTesting {data} with n = {n}")
-            reference(os.path.join('Dataset', data, f'{n}.txt'))
+            for i in range(1, 4):
+                FILE = os.path.join('Dataset', data, f'{n}_{i}.txt')
+                print(f"\nTesting {data} with n = {n}")
+                sol = reference(FILE)
+                with open(SOL_DIR, 'a') as f:
+                    f.write(f"{n}_{i}.txt: {sol}\n")
     else:
-        FILE = os.path.join('Dataset', data, f'{300}.txt')
-        print(f"Testing {data} with n = 300")
-        reference(FILE)
+        for i in range(1, 4):
+            FILE = os.path.join('Dataset', data, f'300_{i}.txt')
+            print(f"\nTesting {data} with n = 300")
+            sol = reference(FILE)
+            with open(SOL_DIR, 'a') as f:
+                f.write(f"300_{i}.txt: {sol}\n")

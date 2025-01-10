@@ -371,7 +371,7 @@ def OSQP(A: np.ndarray, l: np.ndarray, u: np.ndarray,
         z = z_new
         y = y_new
     
-    return x, r_primal_records, r_dual_records
+    return x, r_primal_records, r_dual_records, iter
 
 
 def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray, 
@@ -424,23 +424,23 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     if (AE is not None) and (bE is not None):
         A[:eq_cnt] = AE
         b[:eq_cnt] = bE
-        l[:AI_len] = -np.inf
-        u[:AI_len] = -bI
+        l[AI_len:] = -bE
+        u[AI_len:] = -bE
     if (AI is not None) and (bI is not None):
         A[eq_cnt:] = AI
         b[eq_cnt:] = bI
-        l[AI_len:] = -bE
-        u[AI_len:] = -bE
+        l[:AI_len] = -np.inf
+        u[:AI_len] = -bI
     
     A_iter, b_iter = A.copy(), b.copy()
     AE_iter, AI_iter = A_iter[:eq_cnt], A_iter[eq_cnt:]
     bE_iter, bI_iter = b_iter[:eq_cnt], b_iter[eq_cnt:]
     
     if solver == "OSQP":
-        x, _, _ = OSQP(
+        x, _, _, iter = OSQP(
             A, l, u, g, H
         )
-        return x
+        return x, iter
     
     for sp_iter in range(max_iter):
         # Solve Subproblem
@@ -451,7 +451,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         elif (solver == "IRWA"):
             x_new, _ = IRWA(
                 H, g, AE_iter, bE_iter, AI_iter, bI_iter, 
-                1e3, init_x = x, eta = 0.9975 , max_iter= 10000
+                1e3, x_init = x, eta = 0.9975 , max_iter= 10000
             )
         else:
             raise ValueError(f"Solver {solver} not supported.")
@@ -471,6 +471,10 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         x = x_new
         if (feasible) and (delta_x < 5e-6):
             break
+        
+        if np.any(np.isnan(x)):
+            return None, sp_iter 
+            
         
         # Print Info
         print("=" * 60)
@@ -508,7 +512,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         AE_iter, AI_iter = A_iter[:eq_cnt], A_iter[eq_cnt:]
         bE_iter, bI_iter = b_iter[:eq_cnt], b_iter[eq_cnt:]
     
-    return x
+    return x, sp_iter
 
 
 if __name__ == "__main__":

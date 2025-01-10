@@ -81,7 +81,7 @@ if __name__ == "__main__":
     
     # Generate g: Random vector
     mean_g = np.random.randint(-100, 100)
-    std_g = np.random.randint(-100, 100)
+    std_g = np.random.randint(1, 100)
     g = np.random.normal(mean_g, std_g, n)
     
     # Generate A: Random matrix
