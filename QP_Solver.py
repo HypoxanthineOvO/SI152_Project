@@ -130,7 +130,9 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         
         M = M * np.diag(
             np.clip(
-                np.exp(M_Penalty_Param / n), 1, (n + 1)
+                #np.exp(M_Penalty_Param / n)
+                np.log(1 + M_Penalty_Param)
+                , 1, (n + 1)
             )
         )
         ## Show M's diagonal values
