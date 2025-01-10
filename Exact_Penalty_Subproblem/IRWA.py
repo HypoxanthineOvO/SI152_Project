@@ -42,7 +42,7 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     return w1, w2
 
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
-         eta=0.9, gamma=1/6, M=10000, 
+         eta=0.95, gamma=1/6, M=10000, 
          sigma=1e-4, sigma_prime=1e-8, 
          max_iter=1000):
     """
@@ -178,7 +178,6 @@ if __name__ == "__main__":
     eps = np.ones(m) * 2e3
     x, log = IRWA(
         H, g, AE, bE, AI, bI, eps, init_x,
-        eta = 0.997, gamma = 1/6, M = 1e4, sigma = 1e-4, sigma_prime = 1e-4, max_iter = 100000,
     )
     #print(log)
     

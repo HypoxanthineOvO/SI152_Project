@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\begin{document}
+
+\begin{algorithm}[H]
+\caption{Iterative Reweighted Algorithm (IRWA) Pseudo-code}
+\label{alg:IRWA}
+\begin{algorithmic}[1]
+\REQUIRE 
+    Hessian matrix $H \in \mathbb{R}^{n \times n}$ \\
+    Gradient vector $g \in \mathbb{R}^n$ \\
+    Constraint matrix $AE \in \mathbb{R}^{m_1 \times n}$ and vector $bE \in \mathbb{R}^{m_1}$ \\
+    Constraint matrix $AI \in \mathbb{R}^{m_2 \times n}$ and vector $bI \in \mathbb{R}^{m_2}$ \\
+    Initial $\epsilon$ vector $\epsilon_{\text{init}} \in \mathbb{R}^{m_1 + m_2}$ \\
+    Initial solution vector $x_{\text{init}} \in \mathbb{R}^n$ \\
+    Parameters $\eta = 0.95$, $\gamma = \frac{1}{6}$, $M = 10\,000$ \\
+    Tolerances $\sigma = 10^{-4}$, $\sigma' = 10^{-8}$ \\
+    Maximum iterations $\text{max\_iter} = 1000$ \\
+\ENSURE 
+    Final solution vector $x \in \mathbb{R}^n$
+\STATE Initialize $x \leftarrow x_{\text{init}}$
+\STATE Initialize $\epsilon \leftarrow \epsilon_{\text{init}}$
+\STATE Construct the combined constraint matrix $A \leftarrow \begin{bmatrix} AE \\ AI \end{bmatrix}$
+\STATE Construct the combined vector $b \leftarrow \begin{bmatrix} bE \\ bI \end{bmatrix}$
+\FOR{Iterations $= 1$ to $\text{max\_iter}$}
+    \STATE Compute weights:
+    \STATE \quad $w_1 \leftarrow \left( (AE \cdot x + bE)^2 + \epsilon_1^2 \right)^{-1/2}$
+    \STATE \quad $w_2 \leftarrow \left( \max(AI \cdot x + bI, 0)^2 + \epsilon_2^2 \right)^{-1/2}$
+    \STATE Construct weight matrix $W \leftarrow \text{diag}(w_1 \, || \, w_2)$
+    \STATE Construct vector $v \leftarrow \begin{cases}
+        \begin{bmatrix} bE \\ \max(-AI \cdot x, bI) \end{bmatrix} & \text{if both } AE, AI \text{ exist} \\
+        bE & \text{if only } AE \text{ exists} \\
+        \max(-AI \cdot x, bI) & \text{if only } AI \text{ exists}
+    \end{cases}$
+    \STATE Solve the reweighted subproblem:
+    \STATE \quad Minimize $0.5 \cdot x^T (H + A^T W A) x + (g + v^T W A) x$ using conjugate gradient method, obtain $x_{\text{next}}$
+    \STATE Update $\epsilon$:
+    \STATE \quad Compute $q_k \leftarrow A \cdot (x_{\text{next}} - x)$
+    \STATE \quad Compute $r_k \leftarrow (1 - v) \odot (A \cdot x + b)$
+    \IF{$|q_k| \leq M \cdot (r_k^2 + \epsilon^2)^{0.5 + \gamma}$ for all elements}
+        \STATE $\epsilon_{\text{next}} \leftarrow \begin{cases}
+            \eta \cdot \epsilon_i & \text{for } i \in I1 \\
+            \begin{cases}
+                \eta \cdot \epsilon_i & \text{if } A_i \cdot x_{\text{next}} + b_i \geq -\epsilon_i \\
+                \epsilon_i & \text{otherwise}
+            \end{cases} & \text{for } i \in I2
+        \end{cases}$
+    \ELSE
+        \STATE $\epsilon_{\text{next}} \leftarrow \epsilon$
+    \ENDIF
+    \STATE Check convergence:
+    \STATE \quad Compute $\Delta x \leftarrow \| x_{\text{next}} - x \|_2$
+    \STATE \quad Compute $\Delta \epsilon \leftarrow \| \epsilon_{\text{next}} - \epsilon \|_2$
+    \IF{$\Delta x \leq \sigma$ and $\Delta \epsilon \leq \sigma'$}
+        \STATE \textbf{Terminate} the loop
+    \ENDIF
+    \STATE Update $x \leftarrow x_{\text{next}}$
+    \STATE Update $\epsilon \leftarrow \epsilon_{\text{next}}$
+\ENDFOR
+\RETURN $x$
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}

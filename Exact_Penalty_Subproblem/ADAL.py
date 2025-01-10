@@ -106,7 +106,7 @@ if __name__ == "__main__":
     #print(A, b)
     x_res, log = ADAL(
         H, g, A, b, equal_cnt, inequal_cnt, 
-        mu = 0.5, sigma = 1e-5, sigmapp = 1e-5, 
+        mu = 1, sigma = 1e-5, sigmapp = 1e-5, 
         show_log = True)
     
     print(f"Solution:", end = " [")

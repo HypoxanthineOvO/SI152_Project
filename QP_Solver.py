@@ -57,7 +57,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         elif (solver == "IRWA"):
             x_new, _ = IRWA(
                 H, g, AE_iter, bE_iter, AI_iter, bI_iter, 
-                1e3, init_x = x, eta = 0.995, max_iter= 100000
+                1e4, x_init = x, eta = 0.9, max_iter= 1000
             )
         else:
             raise ValueError(f"Solver {solver} not supported.")
@@ -130,6 +130,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
 
 if __name__ == "__main__":
     SOLVER = "ADAL"
+    # SOLVER = "IRWA"
     if len(sys.argv) > 2:
         SOLVER = sys.argv[2]
     if len(sys.argv) > 1:
