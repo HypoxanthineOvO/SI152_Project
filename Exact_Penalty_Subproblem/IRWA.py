@@ -156,6 +156,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     
         time_step3 = time.time() - time_start - time_step1 - time_step2
         if (diff_x <= sigma) and (diff_eps <= sigma_prime):
+            print(f"Converged at iteration {_}")
             break
         
         x = x_next
@@ -167,7 +168,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
         
         x_logs.append(x)
     
-    print(f"Time: Step 1: {T1:.4f}, Step 2: {T2:.4f}, Step 3: {T3:.4f}")
+    # print(f"Time: Step 1: {T1:.4f}, Step 2: {T2:.4f}, Step 3: {T3:.4f}")
     return x, x_logs
 
 if __name__ == "__main__":
@@ -197,7 +198,7 @@ if __name__ == "__main__":
     eps = np.ones(m) * 2e3
     x, log = IRWA(
         H, g, AE, bE, AI, bI, eps, init_x,
-        eta = 0.995, gamma = 1/6, M = 1e4, sigma = 1e-4, sigma_prime = 1e-4, max_iter = 10000,
+        eta = 0.995, gamma = 1/6, M = 1e4, sigma = 1e-6, sigma_prime = 1e-8, max_iter = 10000,
     )
     #print(log)
     

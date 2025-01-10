@@ -85,7 +85,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
             eta_val = 0.9975
             x_new, _ = IRWA(
                 H, g, AE_iter, bE_iter, AI_iter, bI_iter, 
-                1e3, init_x = x, eta = eta_val , max_iter= 10000
+                1e4, x_init = x, eta = eta_val , max_iter= 10000
             )
         else:
             raise ValueError(f"Solver {solver} not supported.")
@@ -140,7 +140,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
         printVec(Delta_M[:10])
         print("M: ", end = "")
         printVec(np.diag(M)[:10])
-    
+        print(f"Max M: {np.max(M)}")
         # If Any M is too large: means the problem is infeasible
         if np.any(M > 1e4 * n * n):
             raise ValueError("Problem is infeasible.")
@@ -154,8 +154,8 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     return x
 
 if __name__ == "__main__":
-    # SOLVER = "ADAL"
-    SOLVER = "IRWA"
+    SOLVER = "ADAL"
+    # SOLVER = "IRWA"
     if len(sys.argv) > 2:
         SOLVER = sys.argv[2]
     if len(sys.argv) > 1:
