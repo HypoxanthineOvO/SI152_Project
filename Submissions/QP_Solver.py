@@ -214,7 +214,7 @@ def ADAL(
     return x, x_log
 
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
-         eta = 0.9, gamma = 1/6, M = 10000, 
+         eta = 0.995, gamma = 1/6, M = 10000, 
          sigma = 1e-6, sigma_prime = 1e-8, 
          max_iter = 5000):
     def compute_weights(x_tilde, AE, bE, AI, bI, eps):
@@ -303,7 +303,7 @@ def OSQP(A: np.ndarray, l: np.ndarray, u: np.ndarray,
          g: np.ndarray, H: np.ndarray,
          rho: float = 1,
          sigma: float = 1,
-         alpha: float = 1.5,
+         alpha: float = 1.6,
          eps = 1e-5):
     
     def projection(pt: np.ndarray, l: np.ndarray, u: np.ndarray) -> np.ndarray:
@@ -417,17 +417,20 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     
     # Generate A and l,u from AI, bI, AE, bE
     A = np.zeros((m, n))
+    _A = np.zeros((m, n))
     b = np.zeros(m)
     l = np.zeros(m)
     u = np.zeros(m)
     
     if (AE is not None) and (bE is not None):
         A[:eq_cnt] = AE
+        _A[AI_len:] = AE
         b[:eq_cnt] = bE
         l[AI_len:] = -bE
         u[AI_len:] = -bE
     if (AI is not None) and (bI is not None):
         A[eq_cnt:] = AI
+        _A[:AI_len] = AI
         b[eq_cnt:] = bI
         l[:AI_len] = -np.inf
         u[:AI_len] = -bI
@@ -438,7 +441,7 @@ def QP_solver(AE: np.ndarray, AI: np.ndarray, bE: np.ndarray, bI: np.ndarray,
     
     if solver == "OSQP":
         x, _, _, iter = OSQP(
-            A, l, u, g, H
+            _A, l, u, g, H
         )
         return x, iter
     
@@ -530,7 +533,7 @@ if __name__ == "__main__":
     I_m = np.identity(m)
 
     print("==================== QP_Solver ====================")
-    x = QP_solver(AE, AI, bE, bI, g, H, solver = SOLVER)
+    x, _ = QP_solver(AE, AI, bE, bI, g, H, solver = SOLVER)
     
     print("x: ", end = "")
     printVec(x[:20])

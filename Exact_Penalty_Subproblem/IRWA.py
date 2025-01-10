@@ -45,9 +45,9 @@ def compute_weights(x_tilde, AE, bE, AI, bI, eps):
     return w1, w2
 
 def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init, 
-         eta=0.9, gamma=1/6, M=10000, 
-         sigma=1e-6, sigma_prime=1e-8, 
-         max_iter=5000):
+         eta=0.7, gamma=1/6, M=10000, 
+         sigma=1e-5, sigma_prime=1e-8, 
+         max_iter=1000):
     """
     Iteratively solve the reweighted QP problem using the IRWA algorithm.
     Parameters
