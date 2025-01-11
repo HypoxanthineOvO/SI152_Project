@@ -96,7 +96,7 @@ def IRWA(H, g, AE, bE, AI, bI, eps_init, x_init,
     eps_k = eps_init if not np.isscalar(eps_init) else np.full(A.shape[0], eps_init)
     
     T1, T2, T3 = 0, 0, 0
-    for _ in range(max_iter):
+    for _ in trange(max_iter):
         time_start = time.time()
         # Step 1: Compute weights and solve the reweighted subproblem
         w1, w2 = compute_weights(x, AE, bE, AI, bI, eps_k)
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     eps = np.ones(m) * 2e3
     x, log = IRWA(
         H, g, AE, bE, AI, bI, eps, init_x,
-        eta = 0.995, gamma = 1/6, M = 1e4, sigma = 1e-6, sigma_prime = 1e-8, max_iter = 10000,
+        eta = 0.9975, gamma = 1/6, M = 1e4, sigma = 1e-6, sigma_prime = 1e-8, max_iter = 10000,
     )
     #print(log)
     
